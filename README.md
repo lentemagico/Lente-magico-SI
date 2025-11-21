@@ -8,7 +8,7 @@ Este proyecto consiste en el análisis y desarrollo de un sistema de informació
 
 </p>
 
-# :Clock10: Misión :
+## :clock10: Misión :
 
 </p>
 Brindar soluciones ópticas integrales que mejoren la calidad de vida de nuestros clientes, combinando tecnología de vanguardia, atención personalizada y asesoría profesional. Nos comprometemos a cuidar la salud visual con ética, precisión y calidez, mientras implementamos un sistema de software inteligente que optimiza la gestión comercial, agiliza los procesos internos y fortalece la relación con nuestros clientes.
