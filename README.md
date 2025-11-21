@@ -20,3 +20,15 @@ Brindar soluciones ópticas integrales que mejoren la calidad de vida de nuestro
 <p align="justify">
 Ser reconocidos como la óptica líder en nuestra región por nuestra excelencia en servicio, innovación tecnológica y compromiso con el bienestar visual. Aspiramos a transformar la experiencia óptica en un vínculo de confianza, accesibilidad y desarrollo sostenible, integrando ciencia, estética y humanidad. Con el apoyo de un sistema de software personalizado, proyectamos un crecimiento continuo en ventas, eficiencia operativa y fidelización de clientes.
 </p>
+
+## :rocket: Objetivo General :
+
+Implementar un Sistema de Información de gestión de ventas e inventario para la óptica tradicional, con el fin de optimizar los procesos internos.
+
+##  :chart_with_upwards_trend: Objetivos Especificos:
+
+1. Diseñar una base de datos centralizada para almacenar de forma segura y accesible la información de clientes, ventas, inventario y proveedores.
+2. Sistematizar el registro y procesamiento de las transacciones de ventas para reducir errores y acelerar el tiempo de atención al cliente.
+3. Implementar un módulo de gestión de inventario para monitorear en tiempo real los niveles de stock de monturas, lentes y accesorios.
+4. Establecer alertas automáticas para notificar al personal cuando el inventario de un producto alcance su punto de pedido mínimo, previniendo el desabastecimiento.
+5. Reducir el tiempo empleado en las tareas administrativas manuales (como conteo de inventario o facturación) en al menos un 30% tras la implementación del sistema.
