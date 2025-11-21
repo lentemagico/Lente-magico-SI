@@ -13,3 +13,10 @@ Este proyecto consiste en el análisis y desarrollo de un sistema de informació
 </p>
 Brindar soluciones ópticas integrales que mejoren la calidad de vida de nuestros clientes, combinando tecnología de vanguardia, atención personalizada y asesoría profesional. Nos comprometemos a cuidar la salud visual con ética, precisión y calidez, mientras implementamos un sistema de software inteligente que optimiza la gestión comercial, agiliza los procesos internos y fortalece la relación con nuestros clientes.
 </p>
+
+
+## :eyes: Visión :
+
+<p align="justify">
+Ser reconocidos como la óptica líder en nuestra región por nuestra excelencia en servicio, innovación tecnológica y compromiso con el bienestar visual. Aspiramos a transformar la experiencia óptica en un vínculo de confianza, accesibilidad y desarrollo sostenible, integrando ciencia, estética y humanidad. Con el apoyo de un sistema de software personalizado, proyectamos un crecimiento continuo en ventas, eficiencia operativa y fidelización de clientes.
+</p>
