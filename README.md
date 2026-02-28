@@ -1,6 +1,3 @@
-
-# Lente-magico-SI
-
 # MARCO TEORICO
 
 ## Nombre del proyecto
