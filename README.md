@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# Lente-magico-SI
-=======
 # MARCO TEORICO
 
 ## Nombre del proyecto
@@ -8,17 +5,16 @@
 ## Lente-magico-SI
 ###### ANALISIS Y DESAROLLO DE UN SISTEMA DE INFORMACION PARA LA GESTION Y CONTROL DE VENTAS E INVENTARIOS OPTICOS
 
->>>>>>> 13a149fa1de28e5a640c24e1d9d7fb2db859ade8
 
 <p align="center">
 <img width="230" height="220" alt="image" src="https://github.com/user-attachments/assets/511128f1-2e2b-4916-acec-c881ca69ee2e" />
 
 <p align="justify">
-<<<<<<< HEAD
+
 Este proyecto consiste en el análisis y desarrollo de un sistema de información especializado en la gestión y control de ventas e inventarios para tiendas ópticas. Su objetivo es optimizar las tareas diarias, agilizar procesos y facilitar el seguimiento de clientes, productos y servicios. El sistema está diseñado para adaptarse a las necesidades reales del sector óptico, ofreciendo soluciones prácticas para el control de inventario, agendamiento de citas, facturación, generación de reportes y comunicación con los clientes. Tu experiencia y opinión son fundamentales para construir una herramienta útil, eficiente y orientada a negocios como el tuyo. Las respuestas que compartas nos permitirán identificar los procesos que presentan fallas, las funciones prioritarias y las formas en que la tecnología puede ayudarte a ahorrar tiempo, evitar errores y brindar un mejor servicio.
 
 </p>
-=======
+
 
 </p>
 
@@ -55,4 +51,4 @@ Este proyecto consiste en el análisis y desarrollo de un sistema de informació
 - Debido a la falta de digitalización, gestión manual poco eficaz y al poco uso de herramientas tecnológicas que puedan brindar a las ópticas una buena gestión del inventario y de las ventas, por lo que la atención al cliente no logra ser optima, como consecuencia de esto se evidencia perdidas económicas en ópticas tradicionales convirtiendo el mercado en una competencia desigual, lo que se busca es solucionar esta problemática mediante un sistema de información dinámico orientada a la web que optimice e innove procesos de inventario y la gestión de ventas, permitiendo que la óptica tradicional logre adaptarse a los grandes cambios del mercado que han evolucionado con la tecnología.
 
 
->>>>>>> 13a149fa1de28e5a640c24e1d9d7fb2db859ade8
+
