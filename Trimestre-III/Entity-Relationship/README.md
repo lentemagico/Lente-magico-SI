@@ -1,2 +1,2 @@
-### Diagrama entidad-relacion 
-#### https://pnicolas993-cmd.github.io/LenteMagico_db/
+- ### Diagrama entidad-relacion 
+- #### https://pnicolas993-cmd.github.io/LenteMagico_db/
