@@ -6,7 +6,10 @@
 ###### ANALISIS Y DESAROLLO DE UN SISTEMA DE INFORMACION PARA LA GESTION Y CONTROL DE VENTAS E INVENTARIOS OPTICOS
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
 <p align="center">
 <img width="230" height="220" alt="image" src="https://github.com/user-attachments/assets/511128f1-2e2b-4916-acec-c881ca69ee2e" />
 
@@ -16,7 +19,10 @@ Este proyecto consiste en el análisis y desarrollo de un sistema de informació
 
 </p>
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
 </p>
 
 ## Objetivo General
@@ -52,3 +58,7 @@ Este proyecto consiste en el análisis y desarrollo de un sistema de informació
 - Debido a la falta de digitalización, gestión manual poco eficaz y al poco uso de herramientas tecnológicas que puedan brindar a las ópticas una buena gestión del inventario y de las ventas, por lo que la atención al cliente no logra ser optima, como consecuencia de esto se evidencia perdidas económicas en ópticas tradicionales convirtiendo el mercado en una competencia desigual, lo que se busca es solucionar esta problemática mediante un sistema de información dinámico orientada a la web que optimice e innove procesos de inventario y la gestión de ventas, permitiendo que la óptica tradicional logre adaptarse a los grandes cambios del mercado que han evolucionado con la tecnología.
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
