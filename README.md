@@ -6,6 +6,12 @@
 ###### ANALISIS Y DESAROLLO DE UN SISTEMA DE INFORMACION PARA LA GESTION Y CONTROL DE VENTAS E INVENTARIOS OPTICOS
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+
+=======
+>>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
+>>>>>>> Robert
 
 =======
 >>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
@@ -20,6 +26,12 @@
 <p align="justify">
 <<<<<<< HEAD
 
+<<<<<<< HEAD
+=======
+=======
+  
+>>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
+>>>>>>> Robert
 Este proyecto consiste en el análisis y desarrollo de un sistema de información especializado en la gestión y control de ventas e inventarios para tiendas ópticas. Su objetivo es optimizar las tareas diarias, agilizar procesos y facilitar el seguimiento de clientes, productos y servicios. El sistema está diseñado para adaptarse a las necesidades reales del sector óptico, ofreciendo soluciones prácticas para el control de inventario, agendamiento de citas, facturación, generación de reportes y comunicación con los clientes. Tu experiencia y opinión son fundamentales para construir una herramienta útil, eficiente y orientada a negocios como el tuyo. Las respuestas que compartas nos permitirán identificar los procesos que presentan fallas, las funciones prioritarias y las formas en que la tecnología puede ayudarte a ahorrar tiempo, evitar errores y brindar un mejor servicio.
 
 </p>
