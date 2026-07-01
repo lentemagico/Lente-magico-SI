@@ -10,6 +10,10 @@
 =======
 >>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
 <p align="center">
 <img width="230" height="220" alt="image" src="https://github.com/user-attachments/assets/511128f1-2e2b-4916-acec-c881ca69ee2e" />
 
@@ -27,6 +31,10 @@ Este proyecto consiste en el análisis y desarrollo de un sistema de informació
 </p>
 >>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> 025244544f71408bff4dc5f7bcbe103903427c76
 </p>
 
 ## Objetivo General
