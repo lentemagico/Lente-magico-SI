@@ -1,0 +1,57 @@
+/* Color de fondo general de la aplicación (Look limpio como el dashboard) */
+body {
+  background-color: #eef2f7 !important;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Área de contenido que centra cada página de manera independiente */
+.contenedor-principal-centrado {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh; /* Ajusta la altura restando la barra de navegación */
+  padding: 40px 20px;
+}
+
+/* Estilo unificado para los formularios y módulos tipo Card */
+.card {
+  background-color: #ffffff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(146, 135, 245, 0.05) !important;
+}
+
+/* Color de texto por defecto dentro de las cards (reemplaza el azul pálido anterior) */
+.card {
+  color: #1f2937 !important;
+}
+
+/* Labels y textos de formularios dentro de cards, con buen contraste */
+.card label,
+.card .form-label {
+  color: #1f2937 !important;
+  font-weight: 600;
+}
+
+/* Ajustes finos para la barra de navegación de Bootstrap */
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: #ffffff !important;
+}
+
+.dropdown-menu {
+  border: none !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+/* El toggle interno de NavDropdown (react-bootstrap) no siempre hereda
+   el color del <li> padre, así que se fuerza aquí */
+#dropdown-caja {
+  color: #fff !important;
+}

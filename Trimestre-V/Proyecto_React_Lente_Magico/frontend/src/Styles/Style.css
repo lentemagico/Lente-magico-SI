@@ -1,0 +1,33 @@
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: #fbfbfd;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.contenido {
+  flex: 1;
+}
+
+.footer {
+  background-color: #0d6efd;
+  color: white;
+  text-align: center;
+  padding: 18px 10px;
+  margin-top: auto;
+}
+
+.footer p {
+  margin: 0;
+  font-size: 15px;
+}

@@ -1,0 +1,13 @@
+# dependencias
+node_modules/
+
+# variables de entorno (contiene datos sensibles: contraseñas, claves, etc.)
+.env
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+
+# sistema / editor
+.DS_Store
+.vscode/
