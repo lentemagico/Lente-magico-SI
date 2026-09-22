@@ -1,9 +1,9 @@
-import { Router } from "express";
-import pool from "../../db.js";
+import { Router } from "express"; //Es para crear las rutas
+import pool from "../../db.js"; //El pool de conexiones a la base de datos
 
 const router = Router();
 
-
+// Trae todas las consultas ordenadas de la mas reciente a la mas antigua
 router.get("/consultas", async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -32,6 +32,7 @@ router.get("/consultas", async (req, res) => {
   }
 });
 
+// Registra la formula optica de una consulta
 router.post("/formulas", async (req, res) => {
   const {
     id_consulta,
@@ -45,7 +46,7 @@ router.post("/formulas", async (req, res) => {
     observaciones,
   } = req.body;
 
-
+  // Se validan los campos obligatorios para poder registrar la formula
   if (
     !id_consulta ||
     !id_cliente ||
@@ -60,7 +61,7 @@ router.post("/formulas", async (req, res) => {
 
   try {
 
-
+    // Se verifica que la consulta indicada exista antes de registrar la formula
     const [consulta] = await pool.query(
       `
       SELECT
@@ -78,7 +79,7 @@ router.post("/formulas", async (req, res) => {
       });
     }
 
-
+    // Se verifica que el cliente indicado exista
     const [cliente] = await pool.query(
       `
       SELECT id_cliente
@@ -94,6 +95,7 @@ router.post("/formulas", async (req, res) => {
       });
     }
 
+    // Se valida que esa consulta no tenga ya una formula registrada (solo una por consulta)
     const [formulaExistente] = await pool.query(
       `
       SELECT id_formula
@@ -110,7 +112,8 @@ router.post("/formulas", async (req, res) => {
       });
     }
 
-
+    // Se inserta la nueva formula optica
+    // Number(...) asegura que los ids se guarden como numero y no como texto
     const [resultado] = await pool.query(
       `
       INSERT INTO Formula_optica (

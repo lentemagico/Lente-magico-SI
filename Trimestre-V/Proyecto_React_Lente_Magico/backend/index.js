@@ -1,6 +1,6 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
+import 'dotenv/config'; //Carga las variables del archivo .env para poder usarlas con process.env
+import express from 'express'; //Es para crear el servidor y las rutas
+import cors from 'cors'; //Permite que el frontend (en otro puerto) se pueda comunicar con este backend
 import pool from "./db.js";
 
 import loginRoutes from './routes/login.js';
@@ -100,7 +100,8 @@ app.use('/api/compras', comprasRoutes);
 app.use('/api/proveedores', proveedoresRoutes);
 app.use('/api/productos', productosRoutes); 
 app.use('/api/productosC', productosCRoutes);
-
+ 
+// inicia el sevidor
 app.listen(PORT, () => {
   console.log(`Servidor del backend escuchado en http://localhost:${PORT}`);
 });

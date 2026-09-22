@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import pool from '../../db.js';
+import { Router } from 'express'; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
@@ -8,8 +8,10 @@ const router = Router();
 // CONFIRMAR PAGO BANCARIO
 // =====================================================
 
+// Registra un pago hecho por banco y, opcionalmente, genera su factura
 router.post('/', async (req, res) => {
 
+  // Se obtiene una conexion individual del pool, necesaria para poder usar transacciones
   const connection = await pool.getConnection();
 
   try {
@@ -39,6 +41,7 @@ router.post('/', async (req, res) => {
     // VALIDAR MONTO
     // =================================================
 
+    // monto == null cubre tanto null como undefined en una sola comparacion
     if (
       monto == null ||
       Number(monto) <= 0
@@ -55,6 +58,7 @@ router.post('/', async (req, res) => {
     // VALIDAR BANCO
     // =================================================
 
+    // Se valida que metodo_pago venga y que no sea solo espacios en blanco
     if (
       !metodo_pago ||
       !String(metodo_pago).trim()
@@ -67,6 +71,7 @@ router.post('/', async (req, res) => {
     }
 
 
+    // Se limpia el texto del banco, quitando espacios extra al inicio/final
     const nombreBanco =
       String(metodo_pago).trim();
 
@@ -75,6 +80,7 @@ router.post('/', async (req, res) => {
     // INICIAR TRANSACCIÓN
     // =================================================
 
+    // Se inicia la transaccion: si algo falla mas adelante, se puede revertir todo
     await connection.beginTransaction();
 
 
@@ -82,6 +88,7 @@ router.post('/', async (req, res) => {
     // REGISTRAR PAGO
     // =================================================
 
+    // Se inserta el pago; monto_recibido se guarda igual al monto y el cambio queda en 0
     const [resultadoPago] =
       await connection.query(`
         INSERT INTO Pago (
@@ -114,6 +121,7 @@ router.post('/', async (req, res) => {
 
 
     // ID DEL PAGO
+    // insertId trae el id que la base de datos le asigno a este nuevo pago
     const id_pago =
       resultadoPago.insertId;
 
@@ -125,9 +133,11 @@ router.post('/', async (req, res) => {
     let num_factura = null;
 
 
+    // Solo se genera factura si el usuario lo pidio explicitamente
     if (generar_factura === true) {
 
       // Crear número de factura
+      // padStart(6, '0') rellena con ceros a la izquierda hasta completar 6 digitos (ej: FAC-000045)
       num_factura =
         `FAC-${String(id_pago).padStart(6, '0')}`;
 
@@ -159,6 +169,7 @@ router.post('/', async (req, res) => {
     // CONFIRMAR TRANSACCIÓN
     // =================================================
 
+    // Si todo salio bien (pago y, si aplicaba, factura), se confirman los cambios de forma permanente
     await connection.commit();
 
 
@@ -204,6 +215,7 @@ router.post('/', async (req, res) => {
     // CANCELAR TRANSACCIÓN
     // =================================================
 
+    // Si algo fallo, se deshace tanto el pago como la factura (si alcanzo a crearse)
     await connection.rollback();
 
 
@@ -220,6 +232,7 @@ router.post('/', async (req, res) => {
 
   } finally {
 
+    // Sin importar si hubo exito o error, siempre se libera la conexion de vuelta al pool
     connection.release();
 
   }
@@ -231,6 +244,7 @@ router.post('/', async (req, res) => {
 // CONSULTAR PAGO POR ID
 // =====================================================
 
+// Trae un pago especifico junto con los datos de su factura, si tiene una
 router.get('/:id', async (req, res) => {
 
   try {

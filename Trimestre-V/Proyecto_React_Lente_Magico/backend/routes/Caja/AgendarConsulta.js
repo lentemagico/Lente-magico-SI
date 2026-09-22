@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import pool from '../../db.js';
+import { Router } from 'express'; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
@@ -8,11 +8,14 @@ const router = Router();
 // OBTENER AGENDA
 // GET /api/agendar-consulta
 // ================================================================
+// Trae la agenda de consultas con paginacion y busqueda opcional
 router.get('/', async (req, res) => {
   try {
+    // Se leen los parametros que vienen en la URL (query string), con valores por defecto si no vienen
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 5;
     const search = req.query.search || '';
+    // offset indica desde que registro empezar a traer datos, segun la pagina actual
     const offset = (page - 1) * limit;
 
     let query = `
@@ -51,6 +54,8 @@ router.get('/', async (req, res) => {
         ON c.id_datos_personales = dp.id
     `;
 
+    // Se arma una segunda consulta identica pero solo para contar el total de resultados,
+    // necesaria para calcular cuantas paginas hay en total
     let countQuery = `
       SELECT COUNT(*) AS total
       FROM Agenda_consulta a
@@ -64,6 +69,7 @@ router.get('/', async (req, res) => {
 
     const params = [];
 
+    // Si el usuario esta buscando algo, se agrega un filtro WHERE a ambas consultas
     if (search) {
       const condition = `
         WHERE dp.numero_documento LIKE ?
@@ -76,21 +82,26 @@ router.get('/', async (req, res) => {
       query += condition;
       countQuery += condition;
 
+      // % antes y despues permite buscar coincidencias parciales, no solo exactas
       const s = `%${search}%`;
 
+      // Se repite el mismo valor 5 veces porque el WHERE tiene 5 condiciones con LIKE
       params.push(s, s, s, s, s);
     }
 
+    // Se ordena por fecha y se limita la cantidad de resultados segun la pagina
     query += `
       ORDER BY a.fecha_hora ASC
       LIMIT ? OFFSET ?
     `;
 
+    // ...params agrega los valores de busqueda (si los hay) y despues limit y offset, en ese orden
     const [rows] = await pool.query(
       query,
       [...params, limit, offset]
     );
 
+    // Se ejecuta la consulta de conteo con los mismos filtros de busqueda (sin limit/offset)
     const [count] = await pool.query(
       countQuery,
       params
@@ -99,6 +110,7 @@ router.get('/', async (req, res) => {
     const total = count[0].total;
     const totalPages = Math.ceil(total / limit);
 
+    // Se devuelven los resultados junto con informacion util para la paginacion en el frontend
     res.json({
       consultas: rows,
       pagination: {
@@ -125,6 +137,7 @@ router.get('/', async (req, res) => {
 // OBTENER UNA CONSULTA
 // GET /api/agendar-consulta/:id
 // ================================================================
+// Trae una consulta agendada especifica, junto con los datos del cliente
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -176,7 +189,9 @@ router.get('/:id', async (req, res) => {
 // CREAR CITA
 // POST /api/agendar-consulta
 // ================================================================
+// Agenda una nueva consulta, validando que el cliente exista y que no tenga ya una cita en esa fecha
 router.post('/', async (req, res) => {
+  // Se obtiene una conexion individual del pool, necesaria para poder usar transacciones
   const connection = await pool.getConnection();
 
   try {
@@ -202,11 +217,13 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Se inicia la transaccion: si algo falla mas adelante, se puede revertir todo
     await connection.beginTransaction();
 
     // ============================================================
     // Buscar al cliente por documento
     // ============================================================
+    // Se busca el cliente combinando numero y tipo de documento, ya que juntos lo identifican de forma unica
     const [clientes] = await connection.query(`
       SELECT
         c.id_cliente,
@@ -228,6 +245,7 @@ router.post('/', async (req, res) => {
       id_tipo_documento
     ]);
 
+    // Si el paciente no esta registrado como cliente, no se puede agendar la cita
     if (clientes.length === 0) {
       await connection.rollback();
 
@@ -242,6 +260,7 @@ router.post('/', async (req, res) => {
     // ============================================================
     // Verificar si ya existe una consulta en la misma fecha
     // ============================================================
+    // Se evita que un mismo cliente tenga dos citas agendadas en la misma fecha y hora
     const [consultaExistente] = await connection.query(`
       SELECT id_agenda
       FROM Agenda_consulta
@@ -280,6 +299,7 @@ router.post('/', async (req, res) => {
       estado
     ]);
 
+    // Si todo salio bien, se confirman los cambios de forma permanente
     await connection.commit();
 
     res.status(201).json({
@@ -294,6 +314,7 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
+    // Si algo fallo, se deshace cualquier cambio que se haya hecho en la transaccion
     await connection.rollback();
 
     console.error('Error al agendar consulta:', error);
@@ -303,6 +324,7 @@ router.post('/', async (req, res) => {
     });
 
   } finally {
+    // Sin importar si hubo exito o error, siempre se libera la conexion de vuelta al pool
     connection.release();
   }
 });
@@ -312,6 +334,7 @@ router.post('/', async (req, res) => {
 // ACTUALIZAR CITA
 // PUT /api/agendar-consulta/:id
 // ================================================================
+// Actualiza una cita existente, volviendo a validar que el cliente exista
 router.put('/:id', async (req, res) => {
   const connection = await pool.getConnection();
 
@@ -382,6 +405,7 @@ router.put('/:id', async (req, res) => {
       req.params.id
     ]);
 
+    // Si no se actualizo ninguna fila, esa cita no existe
     if (result.affectedRows === 0) {
       await connection.rollback();
 
@@ -411,35 +435,4 @@ router.put('/:id', async (req, res) => {
 });
 
 
-// ================================================================
-// ELIMINAR CITA
-// DELETE /api/agendar-consulta/:id
-// ================================================================
-router.delete('/:id', async (req, res) => {
-  try {
-    const [result] = await pool.query(`
-      DELETE FROM Agenda_consulta
-      WHERE id_agenda = ?
-    `, [req.params.id]);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        error: 'Consulta no encontrada'
-      });
-    }
-
-    res.json({
-      mensaje: 'Consulta eliminada exitosamente'
-    });
-
-  } catch (error) {
-    console.error('Error al eliminar consulta:', error);
-
-    res.status(500).json({
-      error: error.message
-    });
-  }
-});
-
-
-export default router;
+// ============================================

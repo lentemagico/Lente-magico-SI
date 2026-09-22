@@ -1,25 +1,13 @@
-import express from "express";
-import pool from "../../db.js";
+import express from "express"; //Es para crear las rutas
+import pool from "../../db.js"; //El pool de conexiones a la base de datos
 
 const router = express.Router();
 
+// Trae todos los pacientes (clientes) con su nombre completo y su historia clinica si tienen una
 router.get("/cliente", async (req, res) => {
   try {
-    // const [pacientes] = await pool.query(`
-    //   SELECT
-    //     c.id_cliente,
-    //     CONCAT(
-    //       dp.primer_nombre, ' ',
-    //       IFNULL(dp.segundo_nombre, ''), ' ',
-    //       dp.primer_apellido, ' ',
-    //       IFNULL(dp.segundo_apellido, '')
-    //     ) AS nombre,
-    //     dp.numero_documento AS numeroDocumento
-    //   FROM Cliente c
-    //   INNER JOIN Datos_personales dp
-    //     ON c.id_datos_personales = dp.id
-    //   ORDER BY dp.primer_nombre ASC
-    // `);
+        // CONCAT une varios campos en un solo texto; IFNULL reemplaza por '' si el campo viene null
+        // (ej: si no tiene segundo nombre, no se muestra "null" en el nombre completo)
         const [pacientes] = await pool.query(`
       SELECT
         c.id_cliente,
@@ -49,7 +37,7 @@ router.get("/cliente", async (req, res) => {
   }
 });
 
-
+// Registra la historia clinica de un paciente
 router.post("/historia-clinica", async (req, res) => {
   try {
     const {
@@ -59,14 +47,14 @@ router.post("/historia-clinica", async (req, res) => {
       num_consulta
     } = req.body;
 
-  
+    // Se validan los campos obligatorios
     if (!id_cliente || !fecha_apertura) {
       return res.status(400).json({
         error: "El paciente y la fecha de apertura son obligatorios."
       });
     }
 
-   
+    // Se verifica que el cliente exista antes de crearle una historia clinica
     const [cliente] = await pool.query(
       `
       SELECT id_cliente
@@ -82,7 +70,7 @@ router.post("/historia-clinica", async (req, res) => {
       });
     }
 
-  
+    // Se valida que ese cliente no tenga ya una historia clinica (solo puede tener una)
     const [historiaExistente] = await pool.query(
       `
       SELECT id_historia
@@ -98,7 +86,8 @@ router.post("/historia-clinica", async (req, res) => {
       });
     }
 
-    
+    // Se inserta la nueva historia clinica
+    // ?? solo reemplaza cuando el valor es null o undefined, a diferencia de ||
     const [resultado] = await pool.query(
       `
       INSERT INTO Historia_clinica

@@ -1,10 +1,13 @@
-import express from 'express';
-import pool from '../../db.js';
+import express from 'express'; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = express.Router();
 
+// Trae todos los productos con el nombre de su categoria
+// responde a peticiones GET desde la raiz '/' F asicronna recibe la peticion req y la res-puesta
 router.get('/', async (req, res) => {
     try {
+        // Ejecuta la consulta a la base de datos pool.query, espera una respuesta await y la guarda en la variable productos
         const [productos] = await pool.query(`
             SELECT
                 p.id_producto AS id,
@@ -36,8 +39,9 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Actualiza un producto existente
 router.put('/:id', async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; // id que viene de la peticion
 
     const {
         nombre,
@@ -49,6 +53,8 @@ router.put('/:id', async (req, res) => {
 
     try {
 
+        // Aqui la categoria llega como nombre (texto) desde el frontend, no como id
+        // por eso primero se busca su id_categoria correspondiente
         const [categorias] = await pool.query(
             `
             SELECT id_categoria
@@ -58,6 +64,7 @@ router.put('/:id', async (req, res) => {
             [categoria]
         );
 
+        // Si no existe esa categoria, no se puede continuar con la actualizacion
         if (categorias.length === 0) {
             return res.status(400).json({
                 mensaje: 'La categoría no existe'
@@ -87,6 +94,7 @@ router.put('/:id', async (req, res) => {
             ]
         );
 
+        // affectedRows en 0 significa que ese id no existe en la tabla
         if (resultado.affectedRows === 0) {
             return res.status(404).json({
                 mensaje: 'Producto no encontrado'
@@ -107,7 +115,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-
+// Elimina un producto por id
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
 
@@ -134,6 +142,8 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         console.error('Error al eliminar producto:', error);
 
+        // Codigo de error cuando el producto tiene registros relacionados (compras, ventas, etc.)
+        // y por eso no se puede eliminar sin romper esa relacion
         if (
             error.code === 'ER_ROW_IS_REFERENCED_2' ||
             error.code === 'ER_ROW_IS_REFERENCED'

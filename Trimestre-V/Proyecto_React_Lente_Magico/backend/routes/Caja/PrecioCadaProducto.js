@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import pool from '../../db.js';
+import { Router } from 'express'; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
@@ -8,6 +8,7 @@ const router = Router();
 // GET - OBTENER TODOS LOS PRECIOS
 // ======================================================
 
+// Trae el precio y stock de todos los productos
 router.get('/', async (req, res) => {
 
   try {
@@ -50,6 +51,7 @@ router.get('/', async (req, res) => {
 // GET - OBTENER PRECIO POR ID
 // ======================================================
 
+// Trae el precio de un producto especifico por su id
 router.get('/:id', async (req, res) => {
 
   try {
@@ -101,6 +103,7 @@ router.get('/:id', async (req, res) => {
 // POST - GUARDAR PRECIO POR CÓDIGO
 // ======================================================
 
+// Actualiza el precio de un producto, pero buscandolo por su codigo (no por id)
 router.post('/', async (req, res) => {
 
   try {
@@ -154,6 +157,7 @@ router.post('/', async (req, res) => {
       Number(precio);
 
 
+    // Number.isFinite descarta valores como NaN o Infinity, ademas de exigir que sea mayor a 0
     if (
       !Number.isFinite(precioNumerico) ||
       precioNumerico <= 0
@@ -281,6 +285,7 @@ router.post('/', async (req, res) => {
 // PUT - ACTUALIZAR PRECIO POR ID
 // ======================================================
 
+// Actualiza el precio de un producto, buscandolo directamente por su id
 router.put('/:id', async (req, res) => {
 
   try {
@@ -340,6 +345,7 @@ router.put('/:id', async (req, res) => {
     // OBTENER PRODUCTO ACTUALIZADO
     // ==================================================
 
+    // Se vuelve a consultar el producto para devolverlo con el precio ya actualizado
     const [rows] = await pool.query(`
       SELECT
         id_producto,

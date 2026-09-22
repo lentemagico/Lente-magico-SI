@@ -1,14 +1,17 @@
-import { Router } from 'express';
-import pool from '../../db.js';
+import { Router } from 'express'; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
 
 // Obtener formas de pago utilizadas
+// Trae un resumen de cuantos pagos y cuanto dinero se ha recibido, agrupado por metodo de pago
 router.get('/', async (req, res) => {
 
   try {
 
+    // GROUP BY agrupa los pagos por metodo_pago (efectivo, banco, tarjeta, etc.)
+    // COUNT cuenta cuantos pagos hay de cada metodo, SUM suma el monto total de cada uno
     const [rows] = await pool.query(`
       SELECT
         metodo_pago,
@@ -35,6 +38,7 @@ router.get('/', async (req, res) => {
 
 
 // Obtener pagos
+// Trae todos los pagos registrados, sin importar el metodo, del mas reciente al mas antiguo
 router.get('/pagos', async (req, res) => {
 
   try {

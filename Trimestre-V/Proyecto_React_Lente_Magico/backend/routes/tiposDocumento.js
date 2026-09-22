@@ -1,11 +1,13 @@
-import { Router } from "express";
-import pool from "../db.js";
+import { Router } from "express"; //Es para crear las rutas
+import pool from "../db.js"; //El pool de conexiones a la base de datos
 
 const router = Router();
 
 // GET /api/administrador/tipos-documento
+// Trae todos los tipos de documento ordenados alfabeticamente
 router.get("/", async (req, res) => {
   try {
+    // Ejecuta la consulta a la base de datos pool.query, espera una respuesta await y la guarda en la variable tiposDocumento
     const [tiposDocumento] = await pool.query(`
       SELECT
         id,

@@ -1,13 +1,15 @@
-import { Router } from 'express';
-import pool from '../../db.js';
+import { Router } from 'express'; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
 /**
  * GET - LISTAR PRODUCTOS VENDIDOS
  */
+// Trae el detalle de productos vendidos, con paginacion y busqueda opcional
 router.get('/', async (req, res) => {
   try {
+    // Se leen los parametros de la URL; Math.max asegura que nunca sean menores a 1
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.max(parseInt(req.query.limit) || 10, 1);
     const search = req.query.search || '';
@@ -30,6 +32,7 @@ router.get('/', async (req, res) => {
         ON dv.id_venta = v.id_venta
     `;
 
+    // Consulta aparte solo para contar el total de resultados (para la paginacion)
     let countQuery = `
       SELECT COUNT(*) AS total
       FROM Detalle_venta dv
@@ -37,6 +40,7 @@ router.get('/', async (req, res) => {
         ON dv.id_producto = p.id_producto
     `;
 
+    // Consulta aparte para sumar la cantidad total de unidades vendidas
     let totalQuery = `
       SELECT COALESCE(SUM(dv.cantidad), 0) AS totalVendidos
       FROM Detalle_venta dv
@@ -46,6 +50,7 @@ router.get('/', async (req, res) => {
 
     const params = [];
 
+    // Si hay busqueda, se agrega el mismo filtro a las tres consultas
     if (search.trim() !== '') {
       const condition = `
         WHERE
@@ -67,21 +72,25 @@ router.get('/', async (req, res) => {
       LIMIT ? OFFSET ?
     `;
 
+    // Se trae la pagina de resultados
     const [rows] = await pool.query(
       query,
       [...params, limit, offset]
     );
 
+    // Se cuenta el total de resultados que coinciden con la busqueda
     const [count] = await pool.query(
       countQuery,
       params
     );
 
+    // Se suma el total de unidades vendidas que coinciden con la busqueda
     const [total] = await pool.query(
       totalQuery,
       params
     );
 
+    // ?. y || 0 evitan errores si count o total vinieran vacios, y aseguran que el valor sea numerico
     const totalItems = Number(count[0]?.total || 0);
     const totalVendidos = Number(total[0]?.totalVendidos || 0);
 
@@ -116,8 +125,11 @@ router.get('/', async (req, res) => {
 /**
  * GET - RESUMEN POR PRODUCTO
  */
+// Trae un resumen con el total de unidades vendidas por cada producto
 router.get('/resumen', async (req, res) => {
   try {
+    // LEFT JOIN incluye tambien los productos que nunca se han vendido (con cantidadVendida en 0)
+    // GROUP BY agrupa los resultados por producto para poder sumar sus ventas
     const [rows] = await pool.query(`
       SELECT
         p.id_producto AS idProducto,
@@ -155,6 +167,7 @@ router.get('/resumen', async (req, res) => {
 /**
  * POST - CREAR DETALLE DE VENTA
  */
+// Registra un producto vendido dentro de una venta ya existente
 router.post('/', async (req, res) => {
   try {
     const {
@@ -164,6 +177,7 @@ router.post('/', async (req, res) => {
       precioUnitario
     } = req.body;
 
+    // Se valida que vengan los campos obligatorios y que la cantidad sea mayor a 0
     if (
       !idVenta ||
       !idProducto ||
@@ -211,6 +225,7 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Se inserta el nuevo detalle de venta
     const [result] = await pool.query(
       `
         INSERT INTO Detalle_venta
@@ -230,6 +245,7 @@ router.post('/', async (req, res) => {
       ]
     );
 
+    // Se vuelve a consultar el registro recien creado, ya con los datos del producto y la venta, para devolverlo completo
     const [rows] = await pool.query(
       `
         SELECT
@@ -273,9 +289,10 @@ router.post('/', async (req, res) => {
 /**
  * PUT - ACTUALIZAR DETALLE DE VENTA
  */
+// Actualiza un detalle de venta existente (por ejemplo, corregir cantidad o precio)
 router.put('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // id que viene de la peticion
 
     const {
       idVenta,
@@ -315,12 +332,14 @@ router.put('/:id', async (req, res) => {
       ]
     );
 
+    // affectedRows en 0 significa que ese id no existe en la tabla
     if (result.affectedRows === 0) {
       return res.status(404).json({
         error: 'No se encontró el producto vendido'
       });
     }
 
+    // Se vuelve a consultar el registro ya actualizado, para devolverlo completo
     const [rows] = await pool.query(
       `
         SELECT
@@ -364,6 +383,7 @@ router.put('/:id', async (req, res) => {
 /**
  * DELETE - ELIMINAR DETALLE DE VENTA
  */
+// Elimina un detalle de venta por su id
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;

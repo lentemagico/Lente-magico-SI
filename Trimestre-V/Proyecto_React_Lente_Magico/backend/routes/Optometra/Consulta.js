@@ -1,75 +1,11 @@
-// import express from "express";
-// import pool from "../db.js";
-
-// const router = express.Router();
-
-// router.post("/consulta", async (req, res) => {
-//   try {
-//     const {
-//       id_cliente,
-//       id_usuario,
-//       id_historia,
-//       motivo,
-//       resultado_examen,
-//       diagnostico,
-//       recomendaciones,
-//     } = req.body;
-
-//     if (
-//       !id_cliente ||
-//       !id_usuario ||
-//       !id_historia ||
-//       !motivo
-//     ) {
-//       return res.status(400).json({
-//         error: "Faltan datos obligatorios para registrar la consulta.",
-//       });
-//     }
-
-//     const sql = `
-//       INSERT INTO Consulta (
-//         id_cliente,
-//         id_usuario,
-//         id_historia,
-//         motivo,
-//         resultado_examen,
-//         diagnostico,
-//         recomendaciones
-//       )
-//       VALUES (?, ?, ?, ?, ?, ?, ?)
-//     `;
-
-//     const [resultado] = await pool.query(sql, [
-//       id_cliente,
-//       id_usuario,
-//       id_historia,
-//       motivo,
-//       resultado_examen || "Sin resultado registrado",
-//       diagnostico || "Sin diagnóstico registrado",
-//       recomendaciones || "Sin recomendaciones",
-//     ]);
-
-//     res.status(201).json({
-//       mensaje: "Consulta registrada correctamente.",
-//       id_consulta: resultado.insertId,
-//     });
-//   } catch (error) {
-//     console.error("Error al registrar consulta:", error);
-
-//     res.status(500).json({
-//       error: "Error al registrar la consulta.",
-//     });
-//   }
-// });
-
-// export default router;
-
-import express from "express";
-import pool from "../../db.js";
+import express from "express"; //Es para crear las rutas
+import pool from "../../db.js"; //El pool de conexiones a la base de datos
 
 const router = express.Router();
 
+// Registra una consulta medica, creando la historia clinica si el cliente no tiene una
 router.post("/consulta", async (req, res) => {
+  // Se obtiene una conexion individual del pool, necesaria para poder usar transacciones
   const conexion = await pool.getConnection();
 
   try {
@@ -82,12 +18,14 @@ router.post("/consulta", async (req, res) => {
       recomendaciones,
     } = req.body;
 
+    // Se validan los datos minimos obligatorios para registrar la consulta
     if (!id_cliente || !id_usuario || !motivo) {
       return res.status(400).json({
         error: "Faltan datos obligatorios para registrar la consulta.",
       });
     }
 
+    // Se inicia la transaccion: si algo falla mas adelante, se puede revertir todo
     await conexion.beginTransaction();
 
     // 1. Buscamos si el cliente YA tiene una historia clínica
@@ -109,6 +47,7 @@ router.post("/consulta", async (req, res) => {
         [id_cliente, "Sin evolución registrada", 1]
       );
 
+      // insertId trae el id que la base de datos le asigno a la nueva historia
       idHistoriaFinal = resultadoHistoria.insertId;
     }
 
@@ -127,6 +66,7 @@ router.post("/consulta", async (req, res) => {
       VALUES (?, ?, ?, NOW(), ?, ?, ?, ?)
     `;
 
+    // Si algunos campos opcionales no llegan, se guarda un texto por defecto en vez de dejarlos vacios
     const [resultado] = await conexion.query(sql, [
       id_cliente,
       id_usuario,
@@ -137,6 +77,7 @@ router.post("/consulta", async (req, res) => {
       recomendaciones || "Sin recomendaciones",
     ]);
 
+    // Si todo salio bien, se confirman los cambios de forma permanente
     await conexion.commit();
 
     res.status(201).json({
@@ -145,6 +86,7 @@ router.post("/consulta", async (req, res) => {
       id_historia: idHistoriaFinal,
     });
   } catch (error) {
+    // Si algo fallo en cualquier punto, se deshace todo lo insertado (la historia clinica y/o la consulta)
     await conexion.rollback();
     console.error("Error al registrar consulta:", error);
 
@@ -152,6 +94,7 @@ router.post("/consulta", async (req, res) => {
       error: "Error al registrar la consulta.",
     });
   } finally {
+    // Sin importar si hubo exito o error, siempre se libera la conexion de vuelta al pool
     conexion.release();
   }
 });

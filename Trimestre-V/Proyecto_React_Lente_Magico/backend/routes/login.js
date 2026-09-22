@@ -1,18 +1,22 @@
-import { Router } from "express";
-import bcrypt from "bcryptjs";
-import pool from "../db.js";
+import { Router } from "express"; //Es para crear las rutas
+import bcrypt from "bcryptjs"; //Para comparar la contraseña encriptada
+import pool from "../db.js"; //El pool de conexiones a la base de datos
 
 const router = Router();
 
+// Ruta de login: valida el correo y la contraseña del usuario
 router.post("/", async (req, res) => {
   try {
     const { correo, contrasena } = req.body;
+
+    // Se validan que vengan tanto el correo como la contraseña
     if (!correo || !contrasena) {
       return res.status(400).json({
         mensaje: "Correo y contraseña son campos requeridos",
       });
     }
 
+    // Se busca al usuario por su correo, junto con su rol asignado
     const [rows] = await pool.query(
       `
       SELECT 
@@ -37,6 +41,8 @@ router.post("/", async (req, res) => {
       [correo]
     );
 
+    // Si no se encontro ningun usuario con ese correo, no se dice especificamente
+    // que el correo no existe, para no dar pistas a quien intenta adivinar cuentas
     if (rows.length === 0) {
       return res.status(401).json({
         mensaje: "Correo electrónico o contraseña incorrectos.",
@@ -45,6 +51,7 @@ router.post("/", async (req, res) => {
 
     const usuario = rows[0];
 
+    // bcrypt.compare compara la contraseña que escribio el usuario contra la version encriptada guardada
     const contraseniaValida = await bcrypt.compare(contrasena, usuario.contrasenia);
 
     if (!contraseniaValida) {
@@ -53,12 +60,15 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // Si el usuario esta inactivo, no se le permite iniciar sesion aunque la contraseña sea correcta
     if (usuario.activar_usuario === 0) {
       return res.status(403).json({
         mensaje: "Usuario inactivo",
       });
     }
 
+    // Se arma el nombre completo, ignorando los campos que vengan vacios (segundo nombre, segundo apellido)
+    // filter(Boolean) descarta los valores falsy como null, undefined o ""
     const nombre = [
       usuario.primer_nombre,
       usuario.segundo_nombre,

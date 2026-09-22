@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET /api/productos/:id
+// GET /api/productos/:id — trae un producto específico junto con su categoría
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -82,7 +82,8 @@ router.post('/', async (req, res) => {
                 mensaje: 'Los campos codigo_producto, nombre y precio_venta son obligatorios'
             });
         }
-
+          // Armamos el arreglo de valores; si un campo opcional no llegó, se usa un valor por defecto
+        // (?? solo reemplaza cuando el valor es null o undefined, a diferencia de ||)
         const valores = [
             id_categoria ?? null,
             codigo_producto,
@@ -100,7 +101,7 @@ router.post('/', async (req, res) => {
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             valores
         );
-
+         // Volvemos a consultar el producto recién creado para devolverlo completo (con su id real)
         const [nuevo] = await pool.query('SELECT * FROM Producto WHERE id_producto = ?', [result.insertId]);
         res.status(201).json(nuevo[0]);
     } catch (error) {
@@ -109,6 +110,7 @@ router.post('/', async (req, res) => {
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ mensaje: 'Ya existe un producto con ese código' });
         }
+        // error cuando la categoría indicada no existe en la tabla relacionada (llave foránea)
         if (error.code === 'ER_NO_REFERENCED_ROW_2' || error.code === 'ER_NO_REFERENCED_ROW') {
             return res.status(400).json({ mensaje: 'La categoría indicada no existe' });
         }
@@ -150,7 +152,7 @@ router.put('/:id', async (req, res) => {
                 id
             ]
         );
-
+        // Si no se actualizó ninguna fila, el id no existe
         if (resultado.affectedRows === 0) {
             return res.status(404).json({ mensaje: 'Producto no encontrado' });
         }
@@ -207,7 +209,8 @@ router.delete('/:id', async (req, res) => {
 
     } catch (error) {
         console.error('Error al eliminar producto:', error);
-
+        // Código de error cuando el producto tiene registros relacionados (ventas, compras, etc.)
+        // y por eso no se puede eliminar sin romper esa relación
         if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.code === 'ER_ROW_IS_REFERENCED') {
             return res.status(409).json({
                 mensaje: 'No se puede eliminar el producto porque tiene movimientos asociados (compras, ventas, etc.)'

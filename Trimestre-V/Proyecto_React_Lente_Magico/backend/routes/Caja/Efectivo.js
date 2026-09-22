@@ -1,5 +1,5 @@
-import { Router } from "express";
-import pool from '../../db.js';
+import { Router } from "express"; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
@@ -7,7 +7,9 @@ const router = Router();
 // REGISTRAR PAGO EN EFECTIVO
 // ==========================================
 
+// Registra un pago en efectivo, calculando el cambio y generando factura si se pide
 router.post("/", async (req, res) => {
+  // Se obtiene una conexion individual del pool, necesaria para poder usar transacciones
   const connection = await pool.getConnection();
 
   try {
@@ -19,6 +21,7 @@ router.post("/", async (req, res) => {
     } = req.body;
 
     // Validar datos
+    // monto == null cubre tanto null como undefined en una sola comparacion
     if (
       !id_venta ||
       monto == null ||
@@ -29,9 +32,11 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // El cambio es lo que sobra: lo que el cliente entrego menos lo que debia pagar
     const cambio =
       Number(monto_recibido) - Number(monto);
 
+    // Si el cambio es negativo, significa que el cliente no entrego suficiente dinero
     if (cambio < 0) {
       return res.status(400).json({
         error: "El dinero recibido es insuficiente"
@@ -39,12 +44,14 @@ router.post("/", async (req, res) => {
     }
 
     // Iniciar transacción
+    // Se inicia la transaccion: si algo falla mas adelante, se puede revertir todo
     await connection.beginTransaction();
 
     // ==========================================
     // 1. REGISTRAR EL PAGO
     // ==========================================
 
+    // El metodo_pago se deja fijo como 'Efectivo', ya que es lo unico que maneja esta ruta
     const [result] = await connection.query(
       `
       INSERT INTO Pago (
@@ -73,6 +80,7 @@ router.post("/", async (req, res) => {
     );
 
     // ID del pago creado
+    // insertId trae el id que la base de datos le asigno a este nuevo pago
     const id_pago = result.insertId;
 
     let num_factura = null;
@@ -81,9 +89,11 @@ router.post("/", async (req, res) => {
     // 2. CREAR FACTURA
     // ==========================================
 
+    // Solo se genera factura si el usuario lo pidio explicitamente
     if (generar_factura === true) {
 
       // Número automático de factura
+      // padStart(6, '0') rellena con ceros a la izquierda hasta completar 6 digitos (ej: FAC-000045)
       num_factura =
         `FAC-${String(id_pago).padStart(6, "0")}`;
 
@@ -111,6 +121,7 @@ router.post("/", async (req, res) => {
     // 3. CONFIRMAR TRANSACCIÓN
     // ==========================================
 
+    // Si todo salio bien (pago y, si aplicaba, factura), se confirman los cambios de forma permanente
     await connection.commit();
 
     // ==========================================
@@ -128,6 +139,7 @@ router.post("/", async (req, res) => {
   } catch (error) {
 
     // Deshacer cambios si algo falla
+    // Si algo fallo, se deshace tanto el pago como la factura (si alcanzo a crearse)
     await connection.rollback();
 
     console.error(
@@ -141,6 +153,7 @@ router.post("/", async (req, res) => {
 
   } finally {
 
+    // Sin importar si hubo exito o error, siempre se libera la conexion de vuelta al pool
     connection.release();
 
   }
@@ -151,6 +164,7 @@ router.post("/", async (req, res) => {
 // OBTENER PAGOS EN EFECTIVO
 // ==========================================
 
+// Trae todos los pagos que se hayan hecho especificamente en efectivo
 router.get("/", async (req, res) => {
 
   try {

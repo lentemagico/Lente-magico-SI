@@ -5,6 +5,8 @@ import pool from "../../db.js";
 const router = Router();
 
 // GET /api/administrador/usuarios
+// Trae todos los usuarios con sus datos personales y su rol asignado
+// responde a peticiones GET desde la raiz '/' F asicronna recibe la peticion req y la res-puesta
 router.get("/", async (req, res) => {
   try {
     const [usuarios] = await pool.query(`
@@ -56,6 +58,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /api/administrador/usuarios
+// Crea un nuevo usuario junto con sus datos personales y su rol asignado
 router.post("/", async (req, res) => {
   const connection = await pool.getConnection();
 
@@ -73,7 +76,7 @@ router.post("/", async (req, res) => {
       telefono,
       id_autorizacion,
 
-      // Campo que existe en tu tabla Usuario:
+      
       contrasenia,
 
       activar_usuario = 1,
@@ -128,9 +131,9 @@ router.post("/", async (req, res) => {
         telefono || null,
       ]
     );
-
+        // insertId nos da el id que la base de datos le asignó a este nuevo registro
     const idDatosPersonales = resultadoDatos.insertId;
-    
+          // Encriptamos la contraseña antes de guardarla, nunca se guarda en texto plano   
     const contraseniaHasheada = await bcrypt.hash(contrasenia, 10);
 
 
@@ -157,7 +160,7 @@ router.post("/", async (req, res) => {
 
     const idUsuario = resultadoUsuario.insertId;
 
-    // Rol del usuario
+    // Rol del usuario (autorizacion)
     await connection.query(
       `
         INSERT INTO Autorizacion_usuario (

@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import pool from '../../db.js';
+import { Router } from 'express'; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
@@ -9,13 +9,17 @@ router.get('/', async (req, res) => {
 
   try {
 
+    // Se leen los parametros que vienen en la URL (query string), con valores por defecto si no vienen
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 5;
     const search = req.query.search || '';
+    // offset indica desde que registro empezar a traer datos, segun la pagina actual
     const offset = (page - 1) * limit;
 
+    // % antes y despues permite buscar coincidencias parciales, no solo exactas
     const parametro = `%${search}%`;
 
+    // Se trae la pagina de productos que coincidan con la busqueda (por codigo, nombre o categoria)
     const [rows] = await pool.query(
       `SELECT p.*, cp.nombre_categoria
        FROM Producto p
@@ -26,6 +30,7 @@ router.get('/', async (req, res) => {
       [parametro, parametro, parametro, limit, offset]
     );
 
+    // Se cuenta el total de resultados que coinciden con la busqueda, para calcular el total de paginas
     const [count] = await pool.query(
       `SELECT COUNT(*) AS total
        FROM Producto p
@@ -37,6 +42,7 @@ router.get('/', async (req, res) => {
     const total = count[0].total;
     const totalPages = Math.ceil(total / limit);
 
+    // Se devuelven los productos junto con la informacion de paginacion para el frontend
     res.json({
       productos: rows,
       pagination: {
@@ -99,12 +105,14 @@ router.post('/', async (req, res) => {
       stock_minimo
     } = req.body;
 
+    // precio_venta == null cubre tanto null como undefined en una sola comparacion
     if (!id_categoria || !codigo_producto || !nombre || precio_venta == null) {
       return res.status(400).json({
         error: 'Categoría, código, nombre y precio son obligatorios'
       });
     }
 
+    // COALESCE(?, CURRENT_TIMESTAMP) usa la fecha que llegue, o la fecha/hora actual si no se envio ninguna
     const [result] = await pool.query(
       `INSERT INTO Producto (
         id_categoria, codigo_producto, nombre, descripcion, precio_venta, estado, fecha_creacion, stock_actual, stock_minimo

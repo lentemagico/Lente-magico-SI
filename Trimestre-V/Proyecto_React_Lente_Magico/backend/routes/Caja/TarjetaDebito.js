@@ -1,10 +1,11 @@
-import { Router } from 'express';
-import pool from '../../db.js';
+import { Router } from 'express'; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
 
 // Registrar pago tarjeta débito
+// Registra un pago hecho con tarjeta debito
 router.post('/', async (req, res) => {
 
   try {
@@ -14,6 +15,7 @@ router.post('/', async (req, res) => {
       monto
     } = req.body;
 
+    // monto == null cubre tanto null como undefined en una sola comparacion
     if (!id_venta || monto == null) {
 
       return res.status(400).json({
@@ -22,6 +24,7 @@ router.post('/', async (req, res) => {
 
     }
 
+    // El metodo_pago se deja fijo como 'Tarjeta Débito', ya que es lo unico que maneja esta ruta
     const [result] = await pool.query(`
       INSERT INTO Pago (
         id_venta,
@@ -45,6 +48,7 @@ router.post('/', async (req, res) => {
       monto
     ]);
 
+    // insertId trae el id que la base de datos le asigno a este nuevo pago
     res.status(201).json({
       mensaje: 'Pago con tarjeta débito registrado',
       id_pagos: result.insertId
@@ -62,6 +66,7 @@ router.post('/', async (req, res) => {
 
 
 // Obtener pagos
+// Trae todos los pagos que se hayan hecho especificamente con tarjeta debito
 router.get('/', async (req, res) => {
 
   try {

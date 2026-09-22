@@ -1,5 +1,5 @@
-import { Router } from "express";
-import pool from '../../db.js';
+import { Router } from "express"; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
@@ -8,6 +8,7 @@ const router = Router();
 // OBTENER PLATAFORMAS DISPONIBLES
 // =====================================================
 
+// Devuelve una lista fija (no viene de la base de datos) con las plataformas de pago disponibles
 router.get("/", async (req, res) => {
   try {
 
@@ -57,8 +58,10 @@ router.get("/", async (req, res) => {
 // REGISTRAR PAGO POR PLATAFORMA
 // =====================================================
 
+// Registra un pago hecho por una plataforma digital (Nequi, Daviplata, PSE, etc.)
 router.post("/", async (req, res) => {
 
+  // Se obtiene una conexion individual del pool, necesaria para poder usar transacciones
   const connection = await pool.getConnection();
 
   try {
@@ -76,6 +79,7 @@ router.post("/", async (req, res) => {
     // VALIDACIONES GENERALES
     // =================================================
 
+    // monto == null cubre tanto null como undefined en una sola comparacion
     if (
       !id_venta ||
       monto == null ||
@@ -107,6 +111,7 @@ router.post("/", async (req, res) => {
     // LIMPIAR NOMBRE DE PLATAFORMA
     // =================================================
 
+    // Se quitan espacios extra al inicio/final del nombre de la plataforma
     const nombrePlataforma =
       String(plataforma).trim();
 
@@ -124,6 +129,7 @@ router.post("/", async (req, res) => {
     // INICIAR TRANSACCIÓN
     // =================================================
 
+    // Se inicia la transaccion: si algo falla mas adelante, se puede revertir todo
     await connection.beginTransaction();
 
 
@@ -131,6 +137,7 @@ router.post("/", async (req, res) => {
     // REGISTRAR PAGO
     // =================================================
 
+    // El metodo_pago se guarda como el nombre de la plataforma (Nequi, PSE, etc.)
     const [resultadoPago] =
       await connection.query(
         `
@@ -160,6 +167,7 @@ router.post("/", async (req, res) => {
       );
 
 
+    // insertId trae el id que la base de datos le asigno a este nuevo pago
     const id_pago =
       resultadoPago.insertId;
 
@@ -176,6 +184,8 @@ router.post("/", async (req, res) => {
       por si el frontend lo envía como texto.
     */
 
+    // Se compara contra el booleano true y tambien contra el texto "true"
+    // por si el dato llega como string en vez de booleano
     const debeGenerarFactura =
       generar_factura === true ||
       generar_factura === "true";
@@ -183,6 +193,7 @@ router.post("/", async (req, res) => {
 
     if (debeGenerarFactura) {
 
+      // padStart(6, '0') rellena con ceros a la izquierda hasta completar 6 digitos (ej: FAC-000045)
       num_factura =
         `FAC-${String(id_pago).padStart(6, "0")}`;
 
@@ -213,6 +224,7 @@ router.post("/", async (req, res) => {
     // CONFIRMAR TRANSACCIÓN
     // =================================================
 
+    // Si todo salio bien (pago y, si aplicaba, factura), se confirman los cambios de forma permanente
     await connection.commit();
 
 
@@ -251,6 +263,7 @@ router.post("/", async (req, res) => {
     // DESHACER TRANSACCIÓN
     // =================================================
 
+    // Si algo fallo, se deshace tanto el pago como la factura (si alcanzo a crearse)
     await connection.rollback();
 
 
@@ -267,6 +280,7 @@ router.post("/", async (req, res) => {
 
   } finally {
 
+    // Sin importar si hubo exito o error, siempre se libera la conexion de vuelta al pool
     connection.release();
 
   }

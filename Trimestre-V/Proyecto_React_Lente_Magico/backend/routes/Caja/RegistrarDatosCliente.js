@@ -1,12 +1,14 @@
-import { Router } from 'express';
-import pool from '../../db.js';
+import { Router } from 'express'; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
 // -------------------------------------------------------------------
 // REGISTRAR DATOS DE CLIENTE (POST /clientes)
 // -------------------------------------------------------------------
+// Registra un cliente nuevo, reutilizando sus datos personales si ya estaban guardados
 router.post('/', async (req, res) => {
+  // Se obtiene una conexion individual del pool, necesaria para poder usar transacciones
   const connection = await pool.getConnection();
 
   try {
@@ -30,6 +32,7 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Se inicia la transaccion: si algo falla mas adelante, se puede revertir todo
     await connection.beginTransaction();
 
     // Verificar si la persona ya existe en Datos_personales únicamente por su número de documento
@@ -41,6 +44,7 @@ router.post('/', async (req, res) => {
     let idDatosCliente;
 
     if (existente.length > 0) {
+      // La persona ya tiene datos personales guardados (por ejemplo, ya es un Usuario del sistema)
       idDatosCliente = existente[0].id;
 
       // Verificar si ya se encuentra registrada como Cliente
@@ -49,6 +53,7 @@ router.post('/', async (req, res) => {
         [idDatosCliente]
       );
 
+      // Si ya es cliente, no se puede volver a registrar
       if (clienteExistente.length > 0) {
         await connection.rollback();
         return res.status(400).json({
@@ -56,6 +61,7 @@ router.post('/', async (req, res) => {
         });
       }
     } else {
+      // Si la persona no existia, se insertan sus datos personales por primera vez
       // Insertar en Datos_personales sin campos de ID manuales
       const [dpResult] = await connection.query(
         `INSERT INTO Datos_personales (
@@ -84,10 +90,12 @@ router.post('/', async (req, res) => {
         ]
       );
 
+      // insertId trae el id que la base de datos le asigno a estos nuevos datos personales
       idDatosCliente = dpResult.insertId;
     }
 
     // Registrar en la tabla Cliente vinculando el id_datos_personales generado automáticamente
+    // (ya sea el que existia o el que se acaba de crear)
     const [clienteResult] = await connection.query(
       `INSERT INTO Cliente (
         fecha_registro,
@@ -96,6 +104,7 @@ router.post('/', async (req, res) => {
       [idDatosCliente]
     );
 
+    // Si todo salio bien, se confirman los cambios de forma permanente
     await connection.commit();
 
     res.status(201).json({
@@ -108,10 +117,12 @@ router.post('/', async (req, res) => {
       }
     });
   } catch (error) {
+    // Si algo fallo, se deshace todo lo insertado (datos personales y/o cliente)
     await connection.rollback();
     console.error('Error al registrar cliente:', error);
     res.status(500).json({ error: error.message });
   } finally {
+    // Sin importar si hubo exito o error, siempre se libera la conexion de vuelta al pool
     connection.release();
   }
 });

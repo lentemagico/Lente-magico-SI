@@ -1,5 +1,5 @@
-import { Router } from "express";
-import pool from '../../db.js';
+import { Router } from "express"; //Es para crear las rutas
+import pool from '../../db.js'; //El pool de conexiones a la base de datos
 
 const router = Router();
 
@@ -8,8 +8,10 @@ const router = Router();
 // REGISTRAR PAGO TARJETA CRÉDITO
 // =====================================================
 
+// Registra un pago hecho con tarjeta de credito, incluyendo el numero de cuotas
 router.post("/", async (req, res) => {
 
+  // Se obtiene una conexion individual del pool, necesaria para poder usar transacciones
   const connection = await pool.getConnection();
 
   try {
@@ -26,6 +28,7 @@ router.post("/", async (req, res) => {
     // VALIDAR DATOS
     // =================================================
 
+    // monto == null cubre tanto null como undefined en una sola comparacion
     if (
       !id_venta ||
       monto == null ||
@@ -61,6 +64,7 @@ router.post("/", async (req, res) => {
     // INICIAR TRANSACCIÓN
     // =================================================
 
+    // Se inicia la transaccion: si algo falla mas adelante, se puede revertir todo
     await connection.beginTransaction();
 
 
@@ -68,6 +72,7 @@ router.post("/", async (req, res) => {
     // 1. REGISTRAR PAGO
     // =================================================
 
+    // El metodo_pago se deja fijo como 'Tarjeta Crédito', ya que es lo unico que maneja esta ruta
     const [result] = await connection.query(
       `
       INSERT INTO Pago (
@@ -96,6 +101,7 @@ router.post("/", async (req, res) => {
 
 
     // ID DEL PAGO CREADO
+    // insertId trae el id que la base de datos le asigno a este nuevo pago
     const id_pago = result.insertId;
 
 
@@ -106,6 +112,7 @@ router.post("/", async (req, res) => {
     let num_factura = null;
 
 
+    // Solo se genera factura si el usuario lo pidio explicitamente
     if (generar_factura === true) {
 
       /*
@@ -116,6 +123,7 @@ router.post("/", async (req, res) => {
        * num_factura = FAC-000025
        */
 
+      // padStart(6, '0') rellena con ceros a la izquierda hasta completar 6 digitos
       num_factura =
         `FAC-${String(id_pago).padStart(6, "0")}`;
 
@@ -146,6 +154,7 @@ router.post("/", async (req, res) => {
     // 3. CONFIRMAR TRANSACCIÓN
     // =================================================
 
+    // Si todo salio bien (pago y, si aplicaba, factura), se confirman los cambios de forma permanente
     await connection.commit();
 
 
@@ -185,6 +194,7 @@ router.post("/", async (req, res) => {
     // SI HAY ERROR, DESHACER LOS CAMBIOS
     // =================================================
 
+    // Si algo fallo, se deshace tanto el pago como la factura (si alcanzo a crearse)
     await connection.rollback();
 
 
@@ -201,6 +211,7 @@ router.post("/", async (req, res) => {
 
   } finally {
 
+    // Sin importar si hubo exito o error, siempre se libera la conexion de vuelta al pool
     connection.release();
 
   }
@@ -212,6 +223,7 @@ router.post("/", async (req, res) => {
 // OBTENER PAGOS CON TARJETA CRÉDITO
 // =====================================================
 
+// Trae todos los pagos que se hayan hecho especificamente con tarjeta de credito
 router.get("/", async (req, res) => {
 
   try {
