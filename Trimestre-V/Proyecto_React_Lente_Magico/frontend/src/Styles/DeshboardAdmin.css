@@ -1,0 +1,148 @@
+/* ===== DeshboardAdmin.css =====
+   Sobreescribe el look "apagado" de Bootstrap por defecto.
+   Se importa directamente en DeshboardAdmin.jsx
+*/
+
+.dashboard-title {
+  color: #111827;
+}
+
+.dashboard-subtitle {
+  color: #6b7280 !important;
+}
+
+/* ---- Tarjetas de estadísticas (KPIs) ---- */
+.stat-card {
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 14px rgba(0, 0, 0, 0.05) !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.10) !important;
+}
+
+.stat-card .card-body {
+  position: relative;
+  padding: 22px 24px;
+}
+
+.stat-label {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #111827;
+}
+
+/* Barras de acento más vivas, en vez del border-start pastel de Bootstrap */
+.accent-primary { border-top: 4px solid #2563eb !important; border-left: none !important; }
+.accent-success { border-top: 4px solid #16a34a !important; border-left: none !important; }
+.accent-danger  { border-top: 4px solid #dc2626 !important; border-left: none !important; }
+.accent-warning { border-top: 4px solid #d97706 !important; border-left: none !important; }
+
+/* ---- Título de sección ---- */
+.section-title {
+  color: #111827;
+  font-weight: 800;
+  position: relative;
+  padding-left: 14px;
+}
+
+.section-title::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background: #2563eb;
+  border-radius: 4px;
+}
+
+/* ---- Tarjetas de acciones rápidas ---- */
+.action-card {
+  border: 1px solid #eef0f4 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  overflow: hidden;
+}
+
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.12) !important;
+  border-color: #bfdbfe !important;
+}
+
+.action-card .card-body {
+  padding: 22px 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.action-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: #fff;
+  background: #2563eb;
+}
+
+.action-title {
+  color: #111827 !important;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.action-desc {
+  color: #6b7280 !important;
+  font-size: 0.92rem;
+  margin-bottom: 0;
+}
+
+/* Un color de icono distinto por sección, para dar variedad sin perder cohesión */
+.action-icon.icon-blue   { background: #2563eb; }
+.action-icon.icon-purple { background: #7c3aed; }
+.action-icon.icon-red    { background: #dc2626; }
+.action-icon.icon-green  { background: #16a34a; }
+.action-icon.icon-orange { background: #d97706; }
+.action-icon.icon-teal   { background: #0d9488; }
+.action-icon.icon-pink   { background: #db2777; }
+
+/* ---- Tabla de últimos usuarios ---- */
+.table-card {
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 14px rgba(0, 0, 0, 0.05) !important;
+}
+
+.table-card thead th {
+  color: #6b7280;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  border-bottom: 2px solid #eef0f4 !important;
+}
+
+.table-card tbody tr:hover {
+  background-color: #f8fafc;
+}

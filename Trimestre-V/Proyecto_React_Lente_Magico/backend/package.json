@@ -1,0 +1,22 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Este es el backend donde voy a realizar la conexion con el frontend de mis modulos Administrador y Optometra",
+  "license": "ISC",
+  "author": "Lorena Romero Cassiani",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "bootstrap": "^5.3.8",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mysql2": "^3.23.2",
+    "react-bootstrap": "^2.10.10",
+    "react-router-dom": "^7.18.3"
+  }
+}
