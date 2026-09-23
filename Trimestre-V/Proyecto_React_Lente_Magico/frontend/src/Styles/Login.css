@@ -1,0 +1,27 @@
+body {
+  background-color: #e8f0fe;
+}
+
+.caja-login {
+  margin-top: 100px;
+  max-width: 400px;
+}
+
+.titulo-sistema {
+  color: #1c77ffe3;
+  font-weight: bold;
+}
+
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+caja-login {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
