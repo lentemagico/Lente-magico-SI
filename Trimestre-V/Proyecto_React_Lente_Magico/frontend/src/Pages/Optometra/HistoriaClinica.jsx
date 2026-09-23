@@ -1,12 +1,14 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../../Styles/HistoriaClinica.css";
 
 function RegistroHistoriaClinica() {
+  // Lista de pacientes para el <select> y campos del formulario.
   const [pacientes, setPacientes] = useState([]);
   const [idCliente, setIdCliente] = useState("");
 
+  // Fecha de apertura de la historia clínica, iniciada con la fecha actual
+  // en formato YYYY-MM-DD (requerido por el input type="date").
   const [fechaApertura, setFechaApertura] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -16,11 +18,14 @@ function RegistroHistoriaClinica() {
   const [cargandoPacientes, setCargandoPacientes] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
+  // Mensajes de error y éxito.
   const [error, setError] = useState("");
   const [exito, setExito] = useState("");
 
   const navigate = useNavigate();
 
+  // Al montar el componente, se cargan los pacientes existentes
+  // para elegir a cuál se le abrirá la historia clínica.
   useEffect(() => {
     fetch("http://localhost:5000/api/optometra/cliente")
       .then(async (res) => {
@@ -46,9 +51,12 @@ function RegistroHistoriaClinica() {
       });
   }, []);
 
+  // Maneja el envío del formulario de registro de historia clínica.
   function manejarGuardar(e) {
     e.preventDefault();
 
+    // Validaciones: paciente y fecha de apertura obligatorios,
+    // y número de consulta debe ser un valor numérico válido (>= 0).
     if (!idCliente || !fechaApertura) {
       setError(
         "Selecciona un paciente e indica la fecha de apertura."
@@ -65,6 +73,7 @@ function RegistroHistoriaClinica() {
     setExito("");
     setGuardando(true);
 
+    // Objeto con los datos de la nueva historia clínica a enviar al backend.
     const nuevaHistoria = {
       id_cliente: Number(idCliente),
       fecha_apertura: fechaApertura,
@@ -72,6 +81,7 @@ function RegistroHistoriaClinica() {
       num_consulta: Number(numConsulta),
     };
 
+    // Envío de la historia clínica al backend mediante POST.
     fetch("http://localhost:5000/api/optometra/historia-clinica", {
       method: "POST",
       headers: {
@@ -91,6 +101,8 @@ function RegistroHistoriaClinica() {
         return data;
       })
       .then(() => {
+        // Si todo sale bien, se muestra el éxito, se limpia el formulario
+        // y se redirige a la pantalla de agregar consulta.
         setExito("¡Historia clínica registrada con éxito!");
 
         setIdCliente("");
@@ -125,17 +137,21 @@ function RegistroHistoriaClinica() {
             Abre una historia clínica para un paciente existente.
           </p>
 
+          {/* Nota informativa: aclara que a los pacientes nuevos
+              se les crea la historia automáticamente en otro flujo */}
           <div className="alert alert-info py-2 small">
             Al registrar un paciente nuevo, el sistema crea
             automáticamente su primera historia clínica.
           </div>
 
+          {/* Alerta de error */}
           {error && (
             <div className="alert alert-danger py-2 small">
               {error}
             </div>
           )}
 
+          {/* Alerta de éxito */}
           {exito && (
             <div className="alert alert-success py-2 small">
               {exito}
@@ -144,12 +160,14 @@ function RegistroHistoriaClinica() {
 
           <form onSubmit={manejarGuardar}>
 
+            {/* Sección: datos generales de la historia clínica */}
             <div className="seccion-form mt-3">
               <h6>Datos de la historia clínica</h6>
             </div>
 
             <div className="row g-3">
 
+              {/* Select de paciente */}
               <div className="col-md-6">
                 <label className="form-label">
                   Paciente{" "}
@@ -183,6 +201,7 @@ function RegistroHistoriaClinica() {
                 </select>
               </div>
 
+              {/* Fecha de apertura de la historia clínica */}
               <div className="col-md-6">
                 <label className="form-label">
                   Fecha de apertura{" "}
@@ -200,6 +219,7 @@ function RegistroHistoriaClinica() {
                 />
               </div>
 
+              {/* Número de consultas previas del paciente (0 si es la primera historia) */}
               <div className="col-md-6">
                 <label className="form-label">
                   Número de consulta{" "}
@@ -224,6 +244,7 @@ function RegistroHistoriaClinica() {
                 </small>
               </div>
 
+              {/* Evolución inicial: texto libre opcional, limitado a 1000 caracteres */}
               <div className="col-12">
                 <label className="form-label">
                   Evolución inicial
@@ -243,6 +264,7 @@ function RegistroHistoriaClinica() {
 
             </div>
 
+            {/* Botones de acción: guardar historia clínica o cancelar */}
             <div className="d-flex justify-content-center gap-2 mt-4">
 
               <button

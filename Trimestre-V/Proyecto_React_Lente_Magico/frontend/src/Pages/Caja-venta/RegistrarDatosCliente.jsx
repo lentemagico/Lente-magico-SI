@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../config/api";
 
+// Estado inicial (vacío) del formulario, usado al montar y al limpiar después de guardar
 const inicial = {
   id_tipo_documento: "",
   numero_documento: "",
@@ -17,15 +18,22 @@ const inicial = {
 
 
 export default function RegistrarDatosCliente() {
+  // Valores actuales de todos los campos del formulario
   const [form, setForm] = useState(inicial);
+  // Catálogo de tipos de documento para el select
   const [tiposDocumento, setTiposDocumento] = useState([]);
+  // Errores de validación por campo, para marcar los inputs en rojo
   const [erroresCampos, setErroresCampos] = useState({});
+  // Mensaje de error general (validación o backend)
   const [error, setError] = useState(null);
+  // Mensaje de éxito tras registrar el cliente
   const [exito, setExito] = useState(null);
+  // Bandera para deshabilitar el botón mientras se guarda
   const [cargando, setCargando] = useState(false);
 
   const navigate = useNavigate();
 
+  // Al montar el componente se cargan los tipos de documento y se preselecciona el primero
   useEffect(() => {
     const cargarTipos = async () => {
       try {
@@ -50,6 +58,7 @@ export default function RegistrarDatosCliente() {
     cargarTipos();
   }, []);
 
+  // Handler genérico: actualiza el campo del formulario según el "name" del input
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -64,27 +73,28 @@ export default function RegistrarDatosCliente() {
     // }));
   };
 
- const handleSubmit = async (e) => {
-  const formElement = e.target;
+  // Valida y envía el formulario de registro de cliente al backend
+  const handleSubmit = async (e) => {
+    const formElement = e.target;
 
-  // 1. Deja que el navegador valide los campos "required" primero
-  if (!formElement.checkValidity()) {
-    e.preventDefault();
-    formElement.reportValidity(); // fuerza que se muestren los globos de advertencia
-    return;
-  }
+    // 1. Deja que el navegador valide los campos "required" primero
+    if (!formElement.checkValidity()) {
+      e.preventDefault();
+      formElement.reportValidity(); // fuerza que se muestren los globos de advertencia
+      return;
+    }
 
-  e.preventDefault(); // ya pasó la validación nativa, ahora sí prevenimos el submit real
+    e.preventDefault(); // ya pasó la validación nativa, ahora sí prevenimos el submit real
 
-  setError(null);
-  setExito(null);
+    setError(null);
+    setExito(null);
 
     // Validación adicional antes de enviar
     if (
       !form.id_tipo_documento ||
       !form.numero_documento ||
       !form.primer_nombre ||
-      !form.primer_apellido 
+      !form.primer_apellido
     ) {
       setError(
         "El tipo de documento, número de documento, primer nombre y primer apellido son requeridos"
@@ -92,6 +102,7 @@ export default function RegistrarDatosCliente() {
       return;
     }
 
+    // Valida los campos con reglas propias (función externa) y guarda los errores encontrados
     const errores = validarFormulario(form);
     setErroresCampos(errores);
 
@@ -141,12 +152,14 @@ export default function RegistrarDatosCliente() {
         Registrar Cliente
       </h3>
 
+      {/* Alerta de error general */}
       {error && (
         <div className="alert alert-danger">
           {error}
         </div>
       )}
 
+      {/* Alerta de éxito */}
       {exito && (
         <div className="alert alert-success">
           {exito}
@@ -171,12 +184,14 @@ export default function RegistrarDatosCliente() {
               required
               disabled={tiposDocumento.length === 0}
             >
+              {/* Mientras no ha cargado el catálogo, se muestra un placeholder */}
               {tiposDocumento.length === 0 && (
                 <option value="">
                   Cargando...
                 </option>
               )}
 
+              {/* Opciones generadas dinámicamente a partir del catálogo de tipos de documento */}
               {tiposDocumento.map((t) => (
                 <option
                   key={t.id}
@@ -202,6 +217,7 @@ export default function RegistrarDatosCliente() {
               className={`form-control${erroresCampos.numero_documento ? " is-invalid" : ""}`}
               name="numero_documento"
               value={form.numero_documento}
+              // Solo permite dígitos mientras se escribe
               onChange={(e) => handleChange({ target: { name: "numero_documento", value: e.target.value.replace(/\D/g, "") } })}
               required
             />
@@ -225,6 +241,7 @@ export default function RegistrarDatosCliente() {
               className={`form-control${erroresCampos.primer_nombre ? " is-invalid" : ""}`}
               name="primer_nombre"
               value={form.primer_nombre}
+              // Solo permite letras (incluyendo tildes/ñ/ü) y espacios mientras se escribe
               onChange={(e) => handleChange({ target: { name: "primer_nombre", value: e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g, "") } })}
               required
             />
@@ -391,7 +408,7 @@ export default function RegistrarDatosCliente() {
           </div>
         </div>
 
-        {/* Botón */}
+        {/* Botón de envío del formulario */}
         <button
           type="submit"
           className="btn btn-primary w-100 fw-bold"

@@ -1,18 +1,19 @@
+// ================== IMPORTS ==================
 import { useState, useEffect } from 'react';
 import "../../Styles/EstilosC.css";
 // import Nav from "../../Components/Nav.jsx";
 
 
-
+// ================== CONSTANTES: URLs de la API ==================
 const API_URL = 'http://localhost:5000/api/productos';
 // const API_URL_C = 'http://localhost:5000/api/productosC';
 const API_URL_CATEGORIAS = 'http://localhost:5000/api/categorias';
 
 
-
-
+// ================== COMPONENTE PRINCIPAL ==================
 function ConsultarProducto() {
 
+    // ---------- Estados del componente ----------
     const [productos, setProductos] = useState([]);
     const [categorias, setCategorias] = useState([]);
     const [productoEditando, setProductoEditando] = useState(null);
@@ -20,6 +21,7 @@ function ConsultarProducto() {
     const [busqueda, setBusqueda] = useState('');
     const [mostrarInventario, setMostrarInventario] = useState(false);
 
+    // Trae la lista de productos desde la API y normaliza el id
     const cargarProductos = async () => {
 
         try {
@@ -60,6 +62,7 @@ function ConsultarProducto() {
 
     };
 
+    // Trae la lista de categorías activas desde la API (se usan en el selector del modal)
     const cargarCategorias = async () => {
 
         try {
@@ -98,6 +101,8 @@ function ConsultarProducto() {
 
     };
 
+    // Al montar el componente: carga productos y categorías, y se suscribe
+    // al evento "inventario-actualizado" para refrescar productos automáticamente
     useEffect(() => {
 
         cargarProductos();
@@ -117,6 +122,7 @@ function ConsultarProducto() {
         };
     }, []);
 
+    // Abre el modal de edición cargando una copia del producto seleccionado
     const abrirModal = (producto) => {
 
         setProductoEditando({
@@ -125,12 +131,14 @@ function ConsultarProducto() {
 
     };
 
+    // Cierra el modal de edición sin guardar
     const cerrarModal = () => {
 
         setProductoEditando(null);
 
     };
 
+    // Envía los cambios del producto en edición al backend (PUT)
     const guardarCambios = async () => {
 
         if (!productoEditando) {
@@ -213,21 +221,24 @@ function ConsultarProducto() {
             );
         }
     };
+    // Maneja los cambios de los inputs del modal de edición.
+    // Para "nombre" filtra caracteres que no sean letras/espacios.
     const handleChange = (e) => {
 
-    const { name, value } = e.target;
+        const { name, value } = e.target;
 
-    const valorFinal =
-        name === 'nombre'
-            ? value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, "")
-            : value;
+        const valorFinal =
+            name === 'nombre'
+                ? value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, "")
+                : value;
 
-    setProductoEditando(prev => ({
-        ...prev,
-        [name]: valorFinal
-    }));
-};
+        setProductoEditando(prev => ({
+            ...prev,
+            [name]: valorFinal
+        }));
+    };
 
+    // Abre el modal de confirmación de eliminación para el producto seleccionado
     const abrirEliminar = (producto) => {
 
         // Guardia: si el producto no trae id (por ejemplo porque
@@ -254,12 +265,14 @@ function ConsultarProducto() {
         });
     };
 
+    // Cierra el modal de confirmación de eliminación sin borrar nada
     const cerrarEliminar = () => {
 
         setProductoEliminando(null);
 
     };
 
+    // Elimina definitivamente el producto confirmado (DELETE al backend)
     const confirmarEliminar = async () => {
 
         if (!productoEliminando?.id) {
@@ -314,6 +327,7 @@ function ConsultarProducto() {
         }
     };
 
+    // Lista de productos filtrada según el texto de búsqueda (nombre o código)
     const productosFiltrados = productos.filter(producto => {
 
         const nombre =
@@ -333,6 +347,7 @@ function ConsultarProducto() {
         );
     });
 
+    // ================== RENDER ==================
     return (
 
         <>
@@ -341,6 +356,7 @@ function ConsultarProducto() {
 
             <div className="page-container">
 
+                {/* Barra superior: título y botón de acceso al inventario */}
                 <div className="top-bar">
 
                     <h2>
@@ -367,6 +383,7 @@ function ConsultarProducto() {
 
                 </div>
 
+                {/* Buscador por nombre o código de producto */}
                 <input
                     type="text"
                     className="buscador"
@@ -377,6 +394,7 @@ function ConsultarProducto() {
                     }
                 />
 
+                {/* Tabla principal con el listado de productos filtrados */}
                 <table className="tabla-productos">
 
                     <thead>
@@ -478,6 +496,7 @@ function ConsultarProducto() {
 
                 </table>
 
+                {/* ===== Modal: editar producto ===== */}
                 {productoEditando && (
 
                     <div className="modal-overlay">
@@ -682,6 +701,7 @@ function ConsultarProducto() {
                     </div>
                 )}
 
+                {/* ===== Modal: confirmar eliminación ===== */}
                 {productoEliminando && (
 
                     <div className="modal-overlay">
@@ -754,6 +774,7 @@ function ConsultarProducto() {
                     </div>
                 )}
 
+                {/* ===== Modal: estado del inventario (stock bajo / suficiente) ===== */}
                 {mostrarInventario && (
 
                     <div className="modal-overlay">

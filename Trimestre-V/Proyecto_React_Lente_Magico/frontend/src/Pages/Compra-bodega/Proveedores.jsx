@@ -1,11 +1,14 @@
+// ================== IMPORTS ==================
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import "../../Styles/Stylec.css";
 
 // import Nav from "../../Components/Nav.jsx";
 
+// Endpoint base de la API de proveedores
 const API_URL = "http://localhost:5000/api/proveedores";
 
+// ================== COMPONENTE PRINCIPAL ==================
 function ConsultarProveedores() {
     const navigate = useNavigate();
     const [busqueda, setBusqueda] = useState('');
@@ -25,10 +28,12 @@ function ConsultarProveedores() {
         tipo: 'Fabricante',
     });
 
+    // Estado para la notificación tipo "toast" y para el modal de confirmación de borrado
     const [toast, setToast] = useState({ mostrar: false, mensaje: '', tipo: 'success' });
     const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
     const [proveedorAEliminar, setProveedorAEliminar] = useState(null);
 
+    // Carga la lista de proveedores desde la API al montar el componente
     useEffect(() => {
         const cargarProveedores = async () => {
             try {
@@ -43,6 +48,7 @@ function ConsultarProveedores() {
         cargarProveedores();
     }, []);
 
+    // Muestra una notificación temporal (toast) que se oculta sola después de 4s
     const lanzarToast = (mensaje, tipo = 'success') => {
         setToast({ mostrar: true, mensaje, tipo });
         setTimeout(() => {
@@ -50,21 +56,25 @@ function ConsultarProveedores() {
         }, 4000);
     };
 
+    // Maneja los cambios de los inputs del formulario de proveedor,
+    // aplicando filtros según el campo (solo números, solo letras, etc.)
     const handleChangeNuevo = (e) => {
-    const { name, value } = e.target;
-    let nuevoValor = value;
+        const { name, value } = e.target;
+        let nuevoValor = value;
 
-    if (name === 'nit' || name === 'telefono') {
-        nuevoValor = value.replace(/\D/g, ''); // solo números
-    } else if (name === 'contacto') {
-        nuevoValor = value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, ''); // solo letras
-    } else if (name === 'razon_social') {
-        nuevoValor = value.replace(/[^A-Za-z0-9ÁÉÍÓÚáéíóúñÑ\s&.\-]/g, ''); // letras, números y algunos símbolos comunes de empresa
-    }
+        if (name === 'nit' || name === 'telefono') {
+            nuevoValor = value.replace(/\D/g, ''); // solo números
+        } else if (name === 'contacto') {
+            nuevoValor = value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, ''); // solo letras
+        } else if (name === 'razon_social') {
+            nuevoValor = value.replace(/[^A-Za-z0-9ÁÉÍÓÚáéíóúñÑ\s&.\-]/g, ''); // letras, números y algunos símbolos comunes de empresa
+        }
 
-    setFormNuevo({ ...formNuevo, [name]: nuevoValor });
-};
+        setFormNuevo({ ...formNuevo, [name]: nuevoValor });
+    };
 
+    // Lista de proveedores filtrada según el texto de búsqueda
+    // (razón social, contacto, NIT o tipo)
     const proveedoresFiltrados = proveedores.filter((p) =>
         p?.razon_social?.toLowerCase().includes(busqueda.toLowerCase()) ||
         p?.contacto?.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -72,20 +82,24 @@ function ConsultarProveedores() {
         p?.tipo?.toLowerCase().includes(busqueda.toLowerCase())
     );
 
+    // Totales para las tarjetas de estadísticas
     const totalActivos = proveedores.filter(p => p.estado === 'Activo').length;
     const totalInactivos = proveedores.filter(p => p.estado === 'Inactivo').length;
 
+    // Carga los datos del proveedor seleccionado en el formulario para editarlo
     const handleEditar = (p) => {
         setProveedorEditando(p.id_proveedor || p.id);
         setFormNuevo({ ...p });
         setMostrarAgregar(true);
     };
 
+    // Abre el modal de confirmación de eliminación para el proveedor seleccionado
     const handlePrepararEliminar = (p) => {
         setProveedorAEliminar(p);
         setMostrarConfirmar(true);
     };
 
+    // Elimina definitivamente el proveedor confirmado (DELETE al backend)
     const confirmarEliminar = async () => {
         try {
             const idTarget = proveedorAEliminar.id_proveedor || proveedorAEliminar.id;
@@ -109,6 +123,8 @@ function ConsultarProveedores() {
         }
     };
 
+    // Envía el formulario: si hay un proveedor en edición hace PUT (actualizar),
+    // si no, hace POST (crear uno nuevo)
     const handleGuardarFormulario = async (e) => {
         e.preventDefault();
 
@@ -154,10 +170,12 @@ function ConsultarProveedores() {
         }
     };
 
+    // ================== RENDER ==================
     return (
         <div className="bg-light min-vh-100">
             {/* <Nav /> */}
 
+            {/* ===== Modal: confirmar eliminación ===== */}
             {mostrarConfirmar && (
                 <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
                     style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999 }}>
@@ -180,6 +198,7 @@ function ConsultarProveedores() {
 
             <div className="container py-4">
 
+                {/* Encabezado: título y botón para alternar entre tabla y formulario */}
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 className="fw-bold text-dark m-0">Gestión de Proveedores</h2>
@@ -199,6 +218,7 @@ function ConsultarProveedores() {
                     </button>
                 </div>
 
+                {/* Tarjetas de estadísticas (solo visibles en la vista de tabla) */}
                 {!mostrarAgregar && (
                     <div className="row g-3 mb-4">
                         <div className="col-md-4">
@@ -222,6 +242,7 @@ function ConsultarProveedores() {
                     </div>
                 )}
 
+                {/* ===== Vista condicional: formulario de agregar/editar, o tabla ===== */}
                 {mostrarAgregar ? (
                     <div className="card shadow-sm border-0 p-4" style={{ maxWidth: '700px', margin: '0 auto' }}>
                         <h4 className="fw-bold mb-3">{proveedorEditando ? 'Modificar Proveedor' : 'Nuevo Proveedor'}</h4>
@@ -279,6 +300,7 @@ function ConsultarProveedores() {
                         </form>
                     </div>
                 ) : (
+                    // Tabla con el listado de proveedores filtrados
                     <div className="card shadow-sm border-0 p-3">
                         <div className="mb-3">
                             <input
@@ -342,6 +364,7 @@ function ConsultarProveedores() {
                     </div>
                 )}
 
+                {/* Notificación flotante (toast) de éxito o error */}
                 {toast.mostrar && (
                     <div className={`toast-alerta flotante-${toast.tipo}`}>
                         <div className="toast-contenido">
@@ -359,6 +382,7 @@ function ConsultarProveedores() {
     );
 }
 
+// ================== CONSTANTES: colores por tipo de proveedor ==================
 // Movido al final para limpiar el espacio visual de arriba sin perder los estilos en la tabla
 const TIPO_COLORES = {
     Fabricante: { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },

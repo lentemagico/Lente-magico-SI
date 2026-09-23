@@ -3,16 +3,23 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../config/api";
 
 export default function Efectivo() {
+  // Venta activa que se va a pagar (se lee de sessionStorage)
   const [venta, setVenta] = useState(null);
+  // Monto en efectivo que el cliente entrega
   const [recibido, setRecibido] = useState("");
+  // Si se debe generar factura al confirmar el pago
   const [generarFactura, setGenerarFactura] = useState(true);
 
+  // Mensaje de error a mostrar
   const [error, setError] = useState(null);
+  // Respuesta del backend tras registrar el pago (null mientras no se ha pagado)
   const [resultado, setResultado] = useState(null);
+  // Bandera para deshabilitar el formulario mientras se procesa el pago
   const [cargando, setCargando] = useState(false);
 
   const navigate = useNavigate();
 
+  // Al montar el componente, se recupera la venta activa guardada en sessionStorage
   useEffect(() => {
     const v = sessionStorage.getItem("ventaActiva");
 
@@ -21,12 +28,15 @@ export default function Efectivo() {
     }
   }, []);
 
+  // Convierte lo recibido a número (0 si el campo está vacío o no es numérico)
   const montoRecibido = Number(recibido) || 0;
 
+  // Diferencia entre lo recibido y el total de la venta (positivo = cambio, negativo = falta dinero)
   const diferencia = venta
     ? montoRecibido - Number(venta.total)
     : 0;
 
+  // Valida y envía el pago en efectivo al backend
   const procesarPago = async (e) => {
     e.preventDefault();
 
@@ -75,6 +85,7 @@ export default function Efectivo() {
 
       setResultado(data);
 
+      // Se limpia la venta y el cliente activos porque el pago ya quedó registrado
       sessionStorage.removeItem("ventaActiva");
       sessionStorage.removeItem("clienteSeleccionado");
 
@@ -85,6 +96,7 @@ export default function Efectivo() {
     }
   };
 
+  // Si no hay venta activa ni resultado, se muestra una advertencia con un atajo para volver a confirmar venta
   if (!venta && !resultado) {
     return (
       <div className="container py-4">
@@ -128,7 +140,7 @@ export default function Efectivo() {
           </div>
         )}
 
-        {/* RESULTADO */}
+        {/* RESULTADO: se muestra en vez del formulario una vez el pago fue confirmado */}
         {resultado ? (
 
           <div className="alert alert-success">
@@ -152,7 +164,7 @@ export default function Efectivo() {
               </strong>
             </p>
 
-            {/* INFORMACIÓN DE FACTURA */}
+            {/* INFORMACIÓN DE FACTURA: solo se muestra si se pidió generar factura */}
             {generarFactura && (
               <div className="mt-3 p-3 bg-white border rounded">
 
@@ -191,7 +203,7 @@ export default function Efectivo() {
 
           <form onSubmit={procesarPago}>
 
-            {/* INFORMACIÓN DE LA VENTA */}
+            {/* INFORMACIÓN DE LA VENTA: número y total a pagar */}
             <div className="bg-light rounded p-3 mb-3 d-flex justify-content-between">
 
               <span>
@@ -222,26 +234,25 @@ export default function Efectivo() {
               required
             />
 
-            {/* CAMBIO */}
+            {/* CAMBIO: se calcula en vivo mientras se escribe el monto recibido */}
             {recibido !== "" && (
               <div
-                className={`alert ${
-                  diferencia < 0
+                className={`alert ${diferencia < 0
                     ? "alert-danger"
                     : "alert-info"
-                } py-2`}
+                  } py-2`}
               >
 
                 {diferencia < 0
                   ? `Faltan $${Math.abs(
-                      diferencia
-                    ).toLocaleString()}`
+                    diferencia
+                  ).toLocaleString()}`
                   : `Cambio: $${diferencia.toLocaleString()}`}
 
               </div>
             )}
 
-            {/* FACTURA */}
+            {/* FACTURA: checkbox para decidir si se genera factura al confirmar */}
             <div className="border rounded p-3 mb-3">
 
               <div className="form-check">
@@ -275,7 +286,7 @@ export default function Efectivo() {
 
             </div>
 
-            {/* BOTÓN */}
+            {/* BOTÓN de envío del formulario */}
             <button
               type="submit"
               className="btn btn-warning w-100 fw-bold"

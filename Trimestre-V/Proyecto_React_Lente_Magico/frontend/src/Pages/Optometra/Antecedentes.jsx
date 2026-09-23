@@ -3,18 +3,23 @@ import { Link, useNavigate } from "react-router-dom";
 import "../../Styles/Antecedentes.css";
 
 function RegistroAntecedentes() {
+  // Lista de pacientes para el <select> y campos del formulario.
   const [pacientes, setPacientes] = useState([]);
   const [idCliente, setIdCliente] = useState("");
   const [antecedentes, setAntecedentes] = useState("");
 
+  // Banderas de carga y de guardado en curso.
   const [cargandoPacientes, setCargandoPacientes] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
+  // Mensajes de error y éxito mostrados en la interfaz.
   const [error, setError] = useState("");
   const [exito, setExito] = useState("");
 
   const navigate = useNavigate();
 
+  // Al montar el componente, se cargan todos los pacientes disponibles
+  // para poder seleccionar a cuál se le agregarán los antecedentes.
   useEffect(() => {
     fetch("http://localhost:5000/api/optometra/cliente")
       .then(async (res) => {
@@ -40,17 +45,23 @@ function RegistroAntecedentes() {
       });
   }, []);
 
+  // Busca el paciente seleccionado según el id elegido en el formulario.
   const pacienteSeleccionado = pacientes.find(
     (paciente) =>
       Number(paciente.id_cliente) === Number(idCliente)
   );
 
+  // Se obtiene el id de la historia clínica asociada a ese paciente
+  // (requerido para poder guardar el antecedente).
   const idHistoria =
     pacienteSeleccionado?.id_historia || "";
 
+  // Maneja el envío del formulario de registro de antecedentes.
   const manejarGuardar = async (e) => {
     e.preventDefault();
 
+    // Validación: se requiere paciente, historia clínica asociada
+    // y el texto de antecedentes no vacío.
     if (!idCliente || !idHistoria || !antecedentes.trim()) {
       setError(
         "Selecciona un paciente y completa los antecedentes obligatorios."
@@ -62,11 +73,14 @@ function RegistroAntecedentes() {
     setExito("");
     setGuardando(true);
 
+    // Objeto con los datos a enviar: id de la historia clínica
+    // y el texto de antecedentes.
     const nuevoAntecedente = {
       id_historia: Number(idHistoria),
       antecedentes: antecedentes.trim(),
     };
 
+    // Envío del antecedente al backend mediante POST.
     try {
       const res = await fetch(
         "http://localhost:5000/api/optometra/antecedentes",
@@ -87,6 +101,8 @@ function RegistroAntecedentes() {
         );
       }
 
+      // Si todo sale bien, se muestra el éxito, se limpia el formulario
+      // y se redirige a la historia clínica tras un breve retraso.
       setExito("¡Antecedente registrado con éxito!");
 
       setIdCliente("");
@@ -135,6 +151,7 @@ function RegistroAntecedentes() {
 
           <form onSubmit={manejarGuardar}>
 
+            {/* Sección: selección del paciente y su historia clínica */}
             <div className="seccion-form mt-3">
               <h6>Paciente e historia clínica</h6>
             </div>
@@ -175,7 +192,7 @@ function RegistroAntecedentes() {
                 </select>
               </div>
 
-              {/* HISTORIA */}
+              {/* HISTORIA: campo de solo lectura derivado del paciente elegido */}
               <div className="col-md-5">
                 <label className="form-label">
                   Historia clínica
@@ -198,12 +215,14 @@ function RegistroAntecedentes() {
                 </small>
               </div>
             </div>
+            {/* Sección: contenido del antecedente */}
             <div className="seccion-form mt-4">
               <h6>Datos del antecedente</h6>
             </div>
 
             <div className="row g-3">
 
+              {/* Antecedentes: solo permite letras y espacios (con tildes/ñ) */}
               <div className="col-12">
                 <label className="form-label">
                   Antecedentes{" "}
@@ -223,6 +242,7 @@ function RegistroAntecedentes() {
               </div>
 
             </div>
+            {/* Botones de acción: guardar antecedente o cancelar */}
             <div className="d-flex justify-content-center gap-2 mt-4">
 
               <button

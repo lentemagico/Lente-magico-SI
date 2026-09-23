@@ -1,22 +1,27 @@
 import React, { useState } from "react";
 
+// Endpoint del backend para registrar el precio de un producto
 const API_URL = "/api/precio-producto";
 
 function PrecioCadaProducto() {
+  // Lista local de precios ya guardados en esta sesión, para mostrarlos como catálogo
   const [catalogoPrecios, setCatalogoPrecios] = useState([]);
 
+  // Campos del formulario (nombre, código y precio del producto)
   const [formData, setFormData] = useState({
     nombre: "",
     codigo: "",
     precio: ""
   });
 
+  // Bandera para deshabilitar el botón mientras se guarda
   const [cargando, setCargando] = useState(false);
 
   // ==========================================
   // MANEJAR CAMBIOS DEL FORMULARIO
   // ==========================================
 
+  // Handler genérico: actualiza el campo del formulario cuyo "name" coincide con el input editado
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -30,6 +35,7 @@ function PrecioCadaProducto() {
   // GUARDAR PRECIO
   // ==========================================
 
+  // Valida el formulario y envía el nuevo precio al backend
   const guardarPrecio = async (e) => {
     e.preventDefault();
 
@@ -87,6 +93,7 @@ function PrecioCadaProducto() {
       // PRODUCTO PARA MOSTRAR EN LA LISTA
       // ========================================
 
+      // Usa el id devuelto por el backend, o un valor temporal (timestamp) si no vino
       const productoGuardado = {
         id: resultado.id || Date.now(),
         nombre: formData.nombre,
@@ -94,6 +101,7 @@ function PrecioCadaProducto() {
         precio: precio
       };
 
+      // Se agrega al inicio de la lista local para verlo de inmediato en el catálogo
       setCatalogoPrecios((prev) => [
         productoGuardado,
         ...prev
@@ -190,6 +198,7 @@ function PrecioCadaProducto() {
                   value={formData.nombre}
                   onChange={handleChange}
                   required
+                  // Mensaje de validación nativo personalizado cuando el campo queda vacío
                   onInvalid={(e) =>
                     e.target.setCustomValidity(
                       "Por favor, ingresa el nombre del producto."
@@ -298,7 +307,7 @@ function PrecioCadaProducto() {
       </div>
 
       {/* ======================================
-          LISTA DE PRECIOS
+          LISTA DE PRECIOS: catálogo local de lo guardado en esta sesión
       ====================================== */}
 
       {catalogoPrecios.length > 0 && (
@@ -324,6 +333,7 @@ function PrecioCadaProducto() {
               }}
             >
 
+              {/* Una tarjeta por cada producto guardado, la más reciente primero */}
               {catalogoPrecios.map((prod) => (
 
                 <div

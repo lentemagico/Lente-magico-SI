@@ -3,20 +3,29 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../config/api";
 
 export default function Plataformas() {
+  // Venta activa que se va a pagar (se lee de sessionStorage)
   const [venta, setVenta] = useState(null);
 
+  // Plataforma elegida: "Nequi", "Daviplata", "PSE" u "Otros"
   const [plataformaSeleccionada, setPlataformaSeleccionada] =
     useState("");
 
+  // Nombre escrito a mano cuando la plataforma elegida es "Otros"
   const [otroNombre, setOtroNombre] = useState("");
+  // Número o referencia de la transacción
   const [numero, setNumero] = useState("");
+  // Valor pagado (se precarga con el total de la venta)
   const [valor, setValor] = useState("");
 
   // Factura
+  // Si se debe generar factura al confirmar el pago
   const [generarFactura, setGenerarFactura] = useState(true);
 
+  // Mensaje de error
   const [error, setError] = useState(null);
+  // Respuesta del backend tras registrar el pago
   const [resultado, setResultado] = useState(null);
+  // Bandera para deshabilitar el formulario mientras se procesa el pago
   const [cargando, setCargando] = useState(false);
 
   const navigate = useNavigate();
@@ -25,6 +34,7 @@ export default function Plataformas() {
   // CARGAR VENTA ACTIVA
   // =====================================================
 
+  // Al montar el componente se recupera la venta activa y se precarga el valor a pagar con su total
   useEffect(() => {
     const ventaGuardada = sessionStorage.getItem("ventaActiva");
 
@@ -48,6 +58,7 @@ export default function Plataformas() {
   // SELECCIONAR PLATAFORMA
   // =====================================================
 
+  // Cambia la plataforma activa y limpia los campos que dependían de la selección anterior
   const seleccionarPlataforma = (plataforma) => {
     setPlataformaSeleccionada(plataforma);
     setError(null);
@@ -64,6 +75,7 @@ export default function Plataformas() {
   // PROCESAR PAGO
   // =====================================================
 
+  // Valida todos los campos y envía el pago por plataforma al backend
   const procesarPago = async (e) => {
     e.preventDefault();
 
@@ -169,7 +181,7 @@ export default function Plataformas() {
   };
 
   // =====================================================
-  // NO HAY VENTA
+  // NO HAY VENTA: se muestra una advertencia con atajo para volver a Confirmar Venta
   // =====================================================
 
   if (!venta && !resultado) {
@@ -227,7 +239,7 @@ export default function Plataformas() {
         )}
 
         {/* ================================================= */}
-        {/* RESULTADO DEL PAGO */}
+        {/* RESULTADO DEL PAGO: reemplaza al formulario una vez el pago fue confirmado */}
         {/* ================================================= */}
 
         {resultado ? (
@@ -340,6 +352,8 @@ export default function Plataformas() {
 
             {/* ================================================= */}
             {/* PLATAFORMAS - UNA SOLA FILA */}
+            {/* Cada plataforma es un botón-tarjeta que llama a seleccionarPlataforma(); */}
+            {/* la tarjeta activa se resalta con un borde azul comparando contra plataformaSeleccionada */}
             {/* ================================================= */}
 
             <h5 className="fw-bold text-center mb-3">
@@ -362,11 +376,10 @@ export default function Plataformas() {
 
                 <button
                   type="button"
-                  className={`card w-100 h-100 ${
-                    plataformaSeleccionada === "Nequi"
+                  className={`card w-100 h-100 ${plataformaSeleccionada === "Nequi"
                       ? "border-primary border-3"
                       : ""
-                  }`}
+                    }`}
                   onClick={() =>
                     seleccionarPlataforma("Nequi")
                   }
@@ -410,11 +423,10 @@ export default function Plataformas() {
 
                 <button
                   type="button"
-                  className={`card w-100 h-100 ${
-                    plataformaSeleccionada === "Daviplata"
+                  className={`card w-100 h-100 ${plataformaSeleccionada === "Daviplata"
                       ? "border-primary border-3"
                       : ""
-                  }`}
+                    }`}
                   onClick={() =>
                     seleccionarPlataforma("Daviplata")
                   }
@@ -458,11 +470,10 @@ export default function Plataformas() {
 
                 <button
                   type="button"
-                  className={`card w-100 h-100 ${
-                    plataformaSeleccionada === "PSE"
+                  className={`card w-100 h-100 ${plataformaSeleccionada === "PSE"
                       ? "border-primary border-3"
                       : ""
-                  }`}
+                    }`}
                   onClick={() =>
                     seleccionarPlataforma("PSE")
                   }
@@ -506,11 +517,10 @@ export default function Plataformas() {
 
                 <button
                   type="button"
-                  className={`card w-100 h-100 ${
-                    plataformaSeleccionada === "Otros"
+                  className={`card w-100 h-100 ${plataformaSeleccionada === "Otros"
                       ? "border-primary border-3"
                       : ""
-                  }`}
+                    }`}
                   onClick={() =>
                     seleccionarPlataforma("Otros")
                   }
@@ -549,7 +559,7 @@ export default function Plataformas() {
             </div>
 
             {/* ================================================= */}
-            {/* INFORMACIÓN DE OTROS */}
+            {/* INFORMACIÓN DE OTROS: campo extra que solo aparece si se eligió "Otros" */}
             {/* ================================================= */}
 
             {plataformaSeleccionada === "Otros" && (
@@ -580,7 +590,7 @@ export default function Plataformas() {
             )}
 
             {/* ================================================= */}
-            {/* DATOS DEL PAGO */}
+            {/* DATOS DEL PAGO: número/referencia y valor, visibles solo tras elegir plataforma */}
             {/* ================================================= */}
 
             {plataformaSeleccionada && (
@@ -654,7 +664,7 @@ export default function Plataformas() {
             )}
 
             {/* ================================================= */}
-            {/* FACTURA */}
+            {/* FACTURA: checkbox para decidir si se genera factura al confirmar */}
             {/* ================================================= */}
 
             {plataformaSeleccionada && (

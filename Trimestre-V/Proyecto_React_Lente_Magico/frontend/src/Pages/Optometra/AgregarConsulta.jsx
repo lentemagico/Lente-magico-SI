@@ -3,33 +3,42 @@ import { Link, useNavigate } from "react-router-dom";
 import "../../Styles/AgregarConsulta.css";
 
 function RegistroConsulta() {
+  // Lista de pacientes disponibles para el <select> y bandera de carga.
   const [pacientes, setPacientes] = useState([]);
   const [cargandoPacientes, setCargandoPacientes] = useState(true);
 
+  // Campos del formulario de la consulta.
   const [idCliente, setIdCliente] = useState("");
   const [motivo, setMotivo] = useState("");
   const [resultadoExamen, setResultadoExamen] = useState("");
   const [diagnostico, setDiagnostico] = useState("");
   const [recomendaciones, setRecomendaciones] = useState("");
 
+  // Mensajes de error/éxito y bandera de guardado en curso.
   const [error, setError] = useState("");
   const [exito, setExito] = useState("");
   const [guardando, setGuardando] = useState(false);
 
   const navigate = useNavigate();
 
+  // Se obtiene el usuario logueado desde localStorage para saber
+  // quién es el optómetra que está registrando la consulta.
   const usuarioLogueado = JSON.parse(
     localStorage.getItem("usuario_logueado") || "null"
   );
 
   const idUsuario = usuarioLogueado?.id || null;
 
+  // Nombre a mostrar del optómetra: usa "nombre", si no existe usa "login",
+  // y como último recurso muestra "Optómetra".
   const nombreUsuario =
     usuarioLogueado?.nombre ||
     usuarioLogueado?.login ||
     "Optómetra";
 
   // Cargar pacientes
+  // Al montar el componente se piden todos los pacientes al backend
+  // para llenar el <select> de selección de paciente.
   useEffect(() => {
     fetch("http://localhost:5000/api/optometra/cliente")
       .then(async (res) => {
@@ -55,22 +64,29 @@ function RegistroConsulta() {
       });
   }, []);
 
-  
+
+  // Busca en la lista de pacientes el que coincide con el id
+  // seleccionado en el formulario.
   const pacienteSeleccionado = pacientes.find(
     (paciente) =>
       Number(paciente.id_cliente) === Number(idCliente)
   );
 
-  
+
+  // Si el paciente ya tiene una historia clínica asociada, se guarda su id
+  // (se usa solo para mostrar un mensaje informativo al usuario).
   const idHistoria = pacienteSeleccionado?.id_historia || null;
 
+  // Maneja el envío del formulario de registro de consulta.
   function manejarGuardar(e) {
     e.preventDefault();
 
     setError("");
     setExito("");
 
-        if (!idCliente) {
+    // Validaciones obligatorias antes de guardar: paciente seleccionado,
+    // usuario con sesión activa y motivo de consulta no vacío.
+    if (!idCliente) {
       setError("Selecciona un paciente.");
       return;
     }
@@ -87,7 +103,9 @@ function RegistroConsulta() {
 
     setGuardando(true);
 
-    
+
+    // Objeto con los datos de la consulta que se enviará al backend.
+    // Los campos opcionales usan un texto por defecto si quedan vacíos.
     const nuevaConsulta = {
       id_cliente: Number(idCliente),
       id_usuario: Number(idUsuario),
@@ -109,6 +127,7 @@ function RegistroConsulta() {
 
     console.log("Datos enviados:", nuevaConsulta);
 
+    // Envío de la consulta al backend mediante POST.
     fetch("http://localhost:5000/api/optometra/consulta", {
       method: "POST",
       headers: {
@@ -130,6 +149,7 @@ function RegistroConsulta() {
       .then((data) => {
         console.log("Consulta guardada:", data);
 
+        // Se muestra el mensaje de éxito y se limpia el formulario.
         setExito("¡Consulta registrada con éxito!");
 
         setIdCliente("");
@@ -138,6 +158,7 @@ function RegistroConsulta() {
         setDiagnostico("");
         setRecomendaciones("");
 
+        // Tras un breve retraso, se redirige a la pantalla de generar fórmula.
         setTimeout(() => {
           navigate("/optometra/generar-formula");
         }, 1500);
@@ -162,12 +183,14 @@ function RegistroConsulta() {
             Registra una nueva valoración para un paciente.
           </p>
 
+          {/* Alerta de error */}
           {error && (
             <div className="alert alert-danger py-2 small">
               {error}
             </div>
           )}
 
+          {/* Alerta de éxito */}
           {exito && (
             <div className="alert alert-success py-2 small">
               {exito}
@@ -176,13 +199,15 @@ function RegistroConsulta() {
 
           <form onSubmit={manejarGuardar}>
 
+            {/* Sección: datos de quién atiende y a quién */}
             <div className="seccion-form mt-3">
               <h6>Información de atención</h6>
             </div>
 
             <div className="row g-3">
 
-              
+
+              {/* Select de paciente, con mensaje según tenga o no historia clínica */}
               <div className="col-md-7">
                 <label className="form-label">
                   Paciente{" "}
@@ -216,7 +241,9 @@ function RegistroConsulta() {
                   ))}
                 </select>
 
-                
+
+                {/* Mensaje informativo: indica si el paciente ya tiene
+                    historia clínica o si se le creará una nueva */}
                 {idCliente && (
                   <small className="text-muted">
                     {idHistoria
@@ -226,7 +253,8 @@ function RegistroConsulta() {
                 )}
               </div>
 
-              
+
+              {/* Campo de solo lectura con el optómetra de la sesión actual */}
               <div className="col-md-5">
                 <label className="form-label">
                   Optómetra responsable
@@ -250,14 +278,16 @@ function RegistroConsulta() {
 
             </div>
 
-            
+
+            {/* Sección: datos propios de la consulta */}
             <div className="seccion-form mt-4">
               <h6>Datos de la consulta</h6>
             </div>
 
             <div className="row g-3">
 
-             
+
+              {/* Motivo de la consulta: solo permite letras y espacios (con tildes/ñ) */}
               <div className="col-md-6">
                 <label className="form-label">
                   Motivo{" "}
@@ -277,7 +307,8 @@ function RegistroConsulta() {
                 />
               </div>
 
-              
+
+              {/* Diagnóstico: lista fija de opciones predefinidas */}
               <div className="col-md-6">
                 <label className="form-label">
                   Diagnóstico
@@ -316,7 +347,8 @@ function RegistroConsulta() {
                 </select>
               </div>
 
-             
+
+              {/* Resultado del examen: texto libre, limitado a 100 caracteres */}
               <div className="col-12">
                 <label className="form-label">
                   Resultado del examen
@@ -334,7 +366,8 @@ function RegistroConsulta() {
                 />
               </div>
 
-              
+
+              {/* Recomendaciones: texto libre, limitado a 1000 caracteres */}
               <div className="col-12">
                 <label className="form-label">
                   Recomendaciones
@@ -354,7 +387,8 @@ function RegistroConsulta() {
 
             </div>
 
-            
+
+            {/* Botones de acción: guardar consulta o cancelar */}
             <div className="d-flex justify-content-center gap-2 mt-4">
 
               <button

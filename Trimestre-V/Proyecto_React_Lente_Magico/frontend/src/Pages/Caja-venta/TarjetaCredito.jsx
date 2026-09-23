@@ -3,15 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../config/api";
 
 export default function TarjetaCredito() {
+  // Venta activa que se va a pagar
   const [venta, setVenta] = useState(null);
+  // Mensaje de error
   const [error, setError] = useState(null);
+  // Respuesta del backend tras registrar el pago
   const [resultado, setResultado] = useState(null);
+  // Bandera para deshabilitar el botón mientras se procesa el pago
   const [cargando, setCargando] = useState(false);
 
   // Cuotas
+  // Número de cuotas elegido para el pago
   const [cuotas, setCuotas] = useState("1");
 
   // Factura
+  // Si se debe generar factura al confirmar el pago
   const [generarFactura, setGenerarFactura] = useState(true);
 
   const navigate = useNavigate();
@@ -20,6 +26,7 @@ export default function TarjetaCredito() {
   // CARGAR VENTA ACTIVA
   // =====================================================
 
+  // Al montar el componente se recupera la venta activa desde sessionStorage
   useEffect(() => {
     const v = sessionStorage.getItem("ventaActiva");
 
@@ -39,6 +46,7 @@ export default function TarjetaCredito() {
   // PROCESAR PAGO
   // =====================================================
 
+  // Valida y envía el pago con tarjeta de crédito al backend
   const procesarPago = async () => {
     setError(null);
 
@@ -128,7 +136,7 @@ export default function TarjetaCredito() {
 
 
   // =====================================================
-  // SI NO HAY VENTA
+  // SI NO HAY VENTA: se muestra una advertencia con atajo para volver a Confirmar Venta
   // =====================================================
 
   if (!venta && !resultado) {
@@ -197,7 +205,7 @@ export default function TarjetaCredito() {
 
 
         {/* =================================================
-            RESULTADO
+            RESULTADO: se muestra en vez del formulario tras confirmar el pago
         ================================================= */}
 
         {resultado ? (
