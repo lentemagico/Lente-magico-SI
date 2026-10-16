@@ -61,7 +61,7 @@ function Login() {
       );
 
       // Mensaje de bienvenida y redirección al inicio tras el login exitoso
-      alert(`¡Bienvenido al sistema, ${usuario.nombre}!`);
+      alert(`¡Bienvenido al sistema, ${usuario.rol}!`);
 
       navigate("/");
     } catch (error) {

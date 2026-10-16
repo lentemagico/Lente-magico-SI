@@ -1,18 +1,34 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../../Styles/AgregarConsulta.css";
 
 function RegistroConsulta() {
+  // NUEVO (diagrama): permite leer los datos que llegan desde la agenda
+  // (id_agenda e id_cliente) cuando se atiende una cita agendada por caja.
+  const location = useLocation();
+
   // Lista de pacientes disponibles para el <select> y bandera de carga.
   const [pacientes, setPacientes] = useState([]);
   const [cargandoPacientes, setCargandoPacientes] = useState(true);
 
   // Campos del formulario de la consulta.
-  const [idCliente, setIdCliente] = useState("");
+  // NUEVO: si se llega desde una cita de la agenda, el paciente ya viene
+  // seleccionado (location.state.id_cliente).
+  const [idCliente, setIdCliente] = useState(
+    location.state?.id_cliente ? String(location.state.id_cliente) : ""
+  );
   const [motivo, setMotivo] = useState("");
   const [resultadoExamen, setResultadoExamen] = useState("");
   const [diagnostico, setDiagnostico] = useState("");
   const [recomendaciones, setRecomendaciones] = useState("");
+
+  // NUEVO (diagrama): campo "evolucion" de la tabla consulta (varchar 1000).
+  const [evolucion, setEvolucion] = useState("");
+
+  // NUEVO (diagrama): campo "antecedentes" de la tabla Antecedentes (varchar 1000).
+  // Es opcional: la historia clínica ya existe (la crea caja al agendar),
+  // y si se escribe algo se agrega como un nuevo antecedente de esa historia.
+  const [antecedentes, setAntecedentes] = useState("");
 
   // Mensajes de error/éxito y bandera de guardado en curso.
   const [error, setError] = useState("");
@@ -20,6 +36,18 @@ function RegistroConsulta() {
   const [guardando, setGuardando] = useState(false);
 
   const navigate = useNavigate();
+
+  // NUEVO (diagrama): id_agenda es opcional. Puede llegar por la ruta
+  // (navigate("/optometra/agregar-consulta", { state: { id_agenda, id_cliente } }))
+  // o por query string (?id_agenda=12). Si no hay cita, queda en null.
+  const idAgenda =
+    location.state?.id_agenda ||
+    new URLSearchParams(location.search).get("id_agenda") ||
+    null;
+
+  // NUEVO: la agenda de caja identifica al paciente por numero_documento,
+  // así que si no llega id_cliente se usa el documento para seleccionarlo.
+  const numeroDocumentoAgenda = location.state?.numero_documento || null;
 
   // Se obtiene el usuario logueado desde localStorage para saber
   // quién es el optómetra que está registrando la consulta.
@@ -53,7 +81,22 @@ function RegistroConsulta() {
         return res.json();
       })
       .then((data) => {
-        setPacientes(Array.isArray(data) ? data : []);
+        const lista = Array.isArray(data) ? data : [];
+
+        setPacientes(lista);
+
+        // NUEVO: si se llegó desde la agenda sin id_cliente, se busca el
+        // paciente por su número de documento y se deja seleccionado.
+        if (numeroDocumentoAgenda && !location.state?.id_cliente) {
+          const encontrado = lista.find(
+            (p) =>
+              String(p.numeroDocumento) === String(numeroDocumentoAgenda)
+          );
+
+          if (encontrado) {
+            setIdCliente(String(encontrado.id_cliente));
+          }
+        }
       })
       .catch((err) => {
         console.error("Error al cargar pacientes:", err);
@@ -73,9 +116,16 @@ function RegistroConsulta() {
   );
 
 
-  // Si el paciente ya tiene una historia clínica asociada, se guarda su id
-  // (se usa solo para mostrar un mensaje informativo al usuario).
+  // Historia clínica del paciente seleccionado. Según el flujo, la crea el
+  // módulo de caja cuando agenda la consulta, así que debería existir siempre.
+  // Se usa para mostrar un mensaje informativo al usuario y, según el
+  // diagrama, también se envía como id_historia de la consulta.
   const idHistoria = pacienteSeleccionado?.id_historia || null;
+
+  // NUEVO: true cuando hay un paciente seleccionado pero no se encontró su
+  // historia clínica (caso anormal: caja no la generó). Solo se advierte.
+  const sinHistoria =
+    Boolean(idCliente) && !cargandoPacientes && !idHistoria;
 
   // Maneja el envío del formulario de registro de consulta.
   function manejarGuardar(e) {
@@ -106,9 +156,17 @@ function RegistroConsulta() {
 
     // Objeto con los datos de la consulta que se enviará al backend.
     // Los campos opcionales usan un texto por defecto si quedan vacíos.
+    // Los nombres coinciden con las columnas del diagrama.
+    // fecha_hora no se envía: la asigna el backend con la fecha y hora actual.
     const nuevaConsulta = {
       id_cliente: Number(idCliente),
       id_usuario: Number(idUsuario),
+
+      // NUEVO (diagrama): consulta.id_historia, la historia que creó caja.
+      id_historia: idHistoria ? Number(idHistoria) : null,
+
+      // NUEVO (diagrama): consulta.id_agenda (la cita que agendó caja).
+      id_agenda: idAgenda ? Number(idAgenda) : null,
 
       motivo: motivo.trim(),
 
@@ -123,6 +181,15 @@ function RegistroConsulta() {
       recomendaciones:
         recomendaciones.trim() ||
         "Sin recomendaciones",
+
+      // NUEVO (diagrama): consulta.evolucion
+      evolucion:
+        evolucion.trim() ||
+        "Sin evolución registrada",
+
+      // NUEVO (diagrama): si se escribió, el backend lo inserta como una
+      // nueva fila en Antecedentes ligada a id_historia. Si no, va null.
+      antecedentes: antecedentes.trim() || null,
     };
 
     console.log("Datos enviados:", nuevaConsulta);
@@ -157,10 +224,20 @@ function RegistroConsulta() {
         setResultadoExamen("");
         setDiagnostico("");
         setRecomendaciones("");
+        setEvolucion("");
+        setAntecedentes("");
 
-        // Tras un breve retraso, se redirige a la pantalla de generar fórmula.
+        // NUEVO (diagrama): formula_optica.id_consulta es FK de consulta
+        // (fk_for_con), por eso se toma el id de la consulta recién creada
+        // y se pasa a la pantalla de fórmula.
+        const idConsulta = data.id_consulta ?? data.id ?? null;
+
+        // Tras un breve retraso, se redirige a la pantalla de generar fórmula
+        // (ahora enviando el id_consulta en el state de la navegación).
         setTimeout(() => {
-          navigate("/optometra/generar-formula");
+          navigate("/optometra/generar-formula", {
+            state: { id_consulta: idConsulta },
+          });
         }, 1500);
       })
       .catch((err) => {
@@ -219,6 +296,11 @@ function RegistroConsulta() {
                   value={idCliente}
                   onChange={(e) => {
                     setIdCliente(e.target.value);
+
+                    // NUEVO: al cambiar de paciente se limpian los antecedentes
+                    // escritos para no mezclarlos con otro paciente.
+                    setAntecedentes("");
+
                     setError("");
                   }}
                   disabled={cargandoPacientes}
@@ -242,13 +324,17 @@ function RegistroConsulta() {
                 </select>
 
 
-                {/* Mensaje informativo: indica si el paciente ya tiene
-                    historia clínica o si se le creará una nueva */}
-                {idCliente && (
-                  <small className="text-muted">
+                {/* Mensaje informativo: la historia clínica la genera caja al
+                    agendar la consulta; si no aparece, se muestra una advertencia */}
+                {idCliente && !cargandoPacientes && (
+                  <small
+                    className={
+                      sinHistoria ? "text-danger" : "text-muted"
+                    }
+                  >
                     {idHistoria
-                      ? "Este paciente ya tiene historia clínica."
-                      : "Paciente nuevo. Se creará su historia clínica al registrar la consulta."}
+                      ? "Historia clínica generada al agendar la consulta."
+                      : "No se encontró la historia clínica de este paciente. Debe generarse al agendar la consulta desde caja."}
                   </small>
                 )}
               </div>
@@ -276,7 +362,57 @@ function RegistroConsulta() {
                 </small>
               </div>
 
+
+              {/* NUEVO (diagrama): aviso cuando la consulta viene de una cita
+                  de la agenda (consulta.id_agenda) */}
+              {idAgenda && (
+                <div className="col-12">
+                  <small className="text-muted">
+                    Esta consulta queda asociada a la cita de agenda #{idAgenda}.
+                  </small>
+                </div>
+              )}
+
             </div>
+
+
+            {/* NUEVO (diagrama): sección de antecedentes (tabla Antecedentes).
+                Los antecedentes cuelgan de historia_clinica y pueden ser
+                varios por historia, por eso se muestra siempre como un
+                campo opcional para agregar uno nuevo. */}
+            {idCliente && (
+              <>
+                <div className="seccion-form mt-4">
+                  <h6>Antecedentes del paciente</h6>
+                </div>
+
+                <div className="row g-3">
+
+                  {/* Antecedentes: texto libre opcional, limitado a 1000 caracteres */}
+                  <div className="col-12">
+                    <label className="form-label">
+                      Nuevo antecedente
+                    </label>
+
+                    <textarea
+                      className="form-control"
+                      rows="3"
+                      maxLength={1000}
+                      placeholder="Ej: Diabetes, uso previo de lentes, antecedentes familiares..."
+                      value={antecedentes}
+                      onChange={(e) =>
+                        setAntecedentes(e.target.value)
+                      }
+                    />
+
+                    <small className="text-muted">
+                      Opcional. {antecedentes.length}/1000
+                    </small>
+                  </div>
+
+                </div>
+              </>
+            )}
 
 
             {/* Sección: datos propios de la consulta */}
@@ -287,7 +423,9 @@ function RegistroConsulta() {
             <div className="row g-3">
 
 
-              {/* Motivo de la consulta: solo permite letras y espacios (con tildes/ñ) */}
+              {/* Motivo de la consulta: permite letras, números, espacios y
+                  puntuación básica (con tildes/ñ). Límite de 40 caracteres
+                  según el diagrama (varchar(40)). */}
               <div className="col-md-6">
                 <label className="form-label">
                   Motivo{" "}
@@ -301,10 +439,14 @@ function RegistroConsulta() {
                   placeholder="Ej: Control anual"
                   value={motivo}
                   onChange={(e) =>
-                    setMotivo(e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, ""))
+                    setMotivo(e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑüÜ0-9\s]/g, ""))
                   }
                   required
                 />
+
+                <small className="text-muted">
+                  {motivo.length}/40
+                </small>
               </div>
 
 
@@ -348,7 +490,8 @@ function RegistroConsulta() {
               </div>
 
 
-              {/* Resultado del examen: texto libre, limitado a 100 caracteres */}
+              {/* Resultado del examen: texto libre, limitado a 1000 caracteres
+                  (antes 100; ahora coincide con varchar(1000) del diagrama) */}
               <div className="col-12">
                 <label className="form-label">
                   Resultado del examen
@@ -357,13 +500,17 @@ function RegistroConsulta() {
                 <textarea
                   className="form-control"
                   rows="3"
-                  maxLength={100}
+                  maxLength={1000}
                   placeholder="Describe el resultado del examen..."
                   value={resultadoExamen}
                   onChange={(e) =>
                     setResultadoExamen(e.target.value)
                   }
                 />
+
+                <small className="text-muted">
+                  {resultadoExamen.length}/1000
+                </small>
               </div>
 
 
@@ -383,6 +530,34 @@ function RegistroConsulta() {
                     setRecomendaciones(e.target.value)
                   }
                 />
+
+                <small className="text-muted">
+                  {recomendaciones.length}/1000
+                </small>
+              </div>
+
+
+              {/* NUEVO (diagrama): Evolución, texto libre, limitado a
+                  1000 caracteres (consulta.evolucion) */}
+              <div className="col-12">
+                <label className="form-label">
+                  Evolución
+                </label>
+
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  maxLength={1000}
+                  placeholder="Ej: Mejoría con el uso de lentes, sin molestias..."
+                  value={evolucion}
+                  onChange={(e) =>
+                    setEvolucion(e.target.value)
+                  }
+                />
+
+                <small className="text-muted">
+                  {evolucion.length}/1000
+                </small>
               </div>
 
             </div>

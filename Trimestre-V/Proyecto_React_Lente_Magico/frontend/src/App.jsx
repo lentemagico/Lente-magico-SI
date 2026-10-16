@@ -5,6 +5,7 @@ import Nav from "./Components/Nav";
 import Footer from "./Components/Footer";
 import Login from "./Pages/Login/Login";
 import Recuperar from "./Pages/Login/Recuperar";
+import RestablecerContrasena from "./Pages/Login/RestablecerContrasena";
 {
   /* Admin */
 }
@@ -24,11 +25,11 @@ import Antecedentes from "./Pages/Optometra/Antecedentes";
 {
   /* caja-venta */
 }
+
 import ConsultarCliente from "./Pages/Caja-venta/ConsultarCliente";
 import RegistrarDatosCliente from "./Pages/Caja-venta/RegistrarDatosCliente";
 import AgendarConsulta from "./Pages/Caja-venta/AgendarConsulta";
 import RegistrarServicio from "./Pages/Caja-venta/RegistrarServicio";
-import AgregarProductos from "./Pages/Caja-venta/AgregarProductos";
 import ConfirmarVenta from "./Pages/Caja-venta/ConfirmarVenta";
 import VisualizarVenta from "./Pages/Caja-venta/VisualizarVenta";
 import VisualizarProductoVendido from "./Pages/Caja-venta/VisualizarProductoVendido";
@@ -87,17 +88,19 @@ function AppRoutes() {
           <Route path="/log-errores" element={verificarSesion(<LogErrores />)}/>
           <Route path="/login" element={<Login />} />
           <Route path="/recuperar" element={<Recuperar />} />
+            <Route path="/restablecer" element={<RestablecerContrasena />} />
           <Route path="/optometra/historia-clinica" element={verificarSesion(<HistoriaClinica />)}/>
           <Route path="/optometra/agregar-consulta" element={verificarSesion(<AgregarConsulta />)}/>
           <Route path="/optometra/generar-formula" element={verificarSesion(<GenerarFormula />)}/>
           <Route path="/optometra/antecedentes" element={verificarSesion(<Antecedentes />)}/>
 
           {/* caja-venta */}
+          
           <Route path="/caja/consultar-cliente" element={verificarSesion(<ConsultarCliente />)}/>
           <Route path="/caja/registrar-datos-cliente" element={verificarSesion(<RegistrarDatosCliente />)}/>
           <Route path="/caja/agendar-consulta" element={verificarSesion(<AgendarConsulta />)}/>
           <Route path="/caja/registrar-servicio" element={verificarSesion(<RegistrarServicio />)}/>
-          <Route path="/caja/agregar-productos" element={verificarSesion(<AgregarProductos />)}/>
+      
           <Route path="/caja/confirmar-venta" element={verificarSesion(<ConfirmarVenta />)}/>
           <Route path="/caja/visualizar-venta" element={verificarSesion(<VisualizarVenta />)}/>
           <Route path="/caja/visualizar-producto-vendido" element={verificarSesion(<VisualizarProductoVendido />)}/>

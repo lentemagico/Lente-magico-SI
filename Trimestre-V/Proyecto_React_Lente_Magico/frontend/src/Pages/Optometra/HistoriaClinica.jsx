@@ -13,8 +13,10 @@ function RegistroHistoriaClinica() {
     new Date().toISOString().split("T")[0]
   );
 
-  const [evolucion, setEvolucion] = useState("");
-  const [numConsulta, setNumConsulta] = useState(0);
+  // CAMBIO (diagrama): se quitaron "evolucion" y "numConsulta". La tabla
+  // historia_clinica solo tiene id_historia, id_cliente y fecha_apertura;
+  // la evolución pertenece a la tabla consulta y el número de consultas
+  // se puede calcular contando las consultas de la historia.
   const [cargandoPacientes, setCargandoPacientes] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
@@ -51,21 +53,21 @@ function RegistroHistoriaClinica() {
       });
   }, []);
 
+  // CAMBIO: como la historia la genera caja al agendar, aquí solo se
+  // ofrecen los pacientes que todavía no tienen historia clínica.
+  const pacientesSinHistoria = pacientes.filter(
+    (paciente) => !paciente.id_historia
+  );
+
   // Maneja el envío del formulario de registro de historia clínica.
   function manejarGuardar(e) {
     e.preventDefault();
 
-    // Validaciones: paciente y fecha de apertura obligatorios,
-    // y número de consulta debe ser un valor numérico válido (>= 0).
+    // Validaciones: paciente y fecha de apertura obligatorios.
     if (!idCliente || !fechaApertura) {
       setError(
         "Selecciona un paciente e indica la fecha de apertura."
       );
-      return;
-    }
-
-    if (numConsulta === "" || Number(numConsulta) < 0) {
-      setError("Indica un número de consulta válido.");
       return;
     }
 
@@ -74,11 +76,10 @@ function RegistroHistoriaClinica() {
     setGuardando(true);
 
     // Objeto con los datos de la nueva historia clínica a enviar al backend.
+    // Coincide con las columnas de historia_clinica del diagrama.
     const nuevaHistoria = {
       id_cliente: Number(idCliente),
       fecha_apertura: fechaApertura,
-      evolucion: evolucion.trim() || "Sin evolución inicial",
-      num_consulta: Number(numConsulta),
     };
 
     // Envío de la historia clínica al backend mediante POST.
@@ -106,8 +107,6 @@ function RegistroHistoriaClinica() {
         setExito("¡Historia clínica registrada con éxito!");
 
         setIdCliente("");
-        setEvolucion("");
-        setNumConsulta(0);
 
         setTimeout(() => {
           navigate("/optometra/agregar-consulta");
@@ -137,11 +136,13 @@ function RegistroHistoriaClinica() {
             Abre una historia clínica para un paciente existente.
           </p>
 
-          {/* Nota informativa: aclara que a los pacientes nuevos
-              se les crea la historia automáticamente en otro flujo */}
+          {/* Nota informativa: aclara que la historia se crea
+              automáticamente cuando caja agenda la consulta
+              (texto actualizado según el flujo real) */}
           <div className="alert alert-info py-2 small">
-            Al registrar un paciente nuevo, el sistema crea
-            automáticamente su primera historia clínica.
+            La historia clínica se genera automáticamente cuando el
+            módulo de caja agenda la consulta del paciente. Usa este
+            formulario solo si algún paciente quedó sin historia.
           </div>
 
           {/* Alerta de error */}
@@ -167,7 +168,7 @@ function RegistroHistoriaClinica() {
 
             <div className="row g-3">
 
-              {/* Select de paciente */}
+              {/* Select de paciente (solo pacientes sin historia clínica) */}
               <div className="col-md-6">
                 <label className="form-label">
                   Paciente{" "}
@@ -189,7 +190,7 @@ function RegistroHistoriaClinica() {
                       : "Seleccione un paciente"}
                   </option>
 
-                  {pacientes.map((paciente) => (
+                  {pacientesSinHistoria.map((paciente) => (
                     <option
                       key={paciente.id_cliente}
                       value={paciente.id_cliente}
@@ -199,6 +200,14 @@ function RegistroHistoriaClinica() {
                     </option>
                   ))}
                 </select>
+
+                {/* Mensaje cuando todos los pacientes ya tienen historia */}
+                {!cargandoPacientes &&
+                  pacientesSinHistoria.length === 0 && (
+                    <small className="text-muted">
+                      Todos los pacientes ya tienen historia clínica.
+                    </small>
+                  )}
               </div>
 
               {/* Fecha de apertura de la historia clínica */}
@@ -216,49 +225,6 @@ function RegistroHistoriaClinica() {
                     setFechaApertura(e.target.value)
                   }
                   required
-                />
-              </div>
-
-              {/* Número de consultas previas del paciente (0 si es la primera historia) */}
-              <div className="col-md-6">
-                <label className="form-label">
-                  Número de consulta{" "}
-                  <span className="text-danger">*</span>
-                </label>
-
-                <input
-                  type="number"
-                  className="form-control"
-                  min="0"
-                  placeholder="Ej: 0"
-                  value={numConsulta}
-                  onChange={(e) =>
-                    setNumConsulta(e.target.value)
-                  }
-                  required
-                />
-
-                <small className="text-muted">
-                  Indica cuántas consultas registradas tiene ya
-                  este paciente (0 si es su primera historia).
-                </small>
-              </div>
-
-              {/* Evolución inicial: texto libre opcional, limitado a 1000 caracteres */}
-              <div className="col-12">
-                <label className="form-label">
-                  Evolución inicial
-                </label>
-
-                <textarea
-                  className="form-control"
-                  rows="4"
-                  maxLength={1000}
-                  placeholder="Escribe observaciones o notas iniciales del paciente..."
-                  value={evolucion}
-                  onChange={(e) =>
-                    setEvolucion(e.target.value)
-                  }
                 />
               </div>
 

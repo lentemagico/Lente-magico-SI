@@ -1,13 +1,25 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "../../Styles/GenerarFormula.css";
 
 function RegistroFormulaOptica() {
+  // NUEVO (diagrama): permite leer el id_consulta que llega desde la pantalla
+  // de registrar consulta (navigate("/optometra/generar-formula",
+  // { state: { id_consulta } })), ya que formula_optica.id_consulta es
+  // FK de consulta (fk_for_con).
+  const location = useLocation();
+
   // Lista de consultas disponibles (cargadas desde el backend) y de pacientes,
   // usados para poblar el <select> de consultas y mostrar el nombre del paciente.
   const [consultas, setConsultas] = useState([]);
   const [pacientes, setPacientes] = useState([]);
-  const [idConsulta, setIdConsulta] = useState("");
+
+  // NUEVO: si se llega desde una consulta recién registrada, queda preseleccionada.
+  const [idConsulta, setIdConsulta] = useState(
+    location.state?.id_consulta
+      ? String(location.state.id_consulta)
+      : ""
+  );
 
   // Valores de graduación óptica para cada ojo (OD = ojo derecho, OI = ojo izquierdo).
   const [esferaOD, setEsferaOD] = useState("");
@@ -114,9 +126,12 @@ function RegistroFormulaOptica() {
     // Objeto con los datos de la fórmula que se enviará al backend.
     // Los campos de graduación combinan OD y OI en un solo texto,
     // usando "0.00" u otros valores por defecto si quedan vacíos.
+    // CAMBIO (diagrama): ya no se envía id_cliente, porque la tabla
+    // formula_optica solo se relaciona con la consulta (id_consulta);
+    // el cliente se obtiene a través de la consulta.
+    // fecha_generacion tampoco se envía: la asigna el backend (fecha actual).
     const nuevaFormula = {
       id_consulta: Number(idConsulta),
-      id_cliente: Number(idCliente),
 
       esfera_ojo_derecho_e_izquierdo: `OD: ${esferaOD || "0.00"
         } | OI: ${esferaOI || "0.00"}`,
@@ -153,8 +168,13 @@ function RegistroFormulaOptica() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
+        // NUEVO (diagrama): uk_formula hace único id_consulta, es decir,
+        // solo puede existir una fórmula por consulta. Si el backend responde
+        // 409 (duplicado) se muestra un mensaje claro.
         throw new Error(
-          data.error || "Error al guardar la fórmula."
+          res.status === 409
+            ? "Esta consulta ya tiene una fórmula óptica generada."
+            : data.error || "Error al guardar la fórmula."
         );
       }
 
@@ -267,6 +287,11 @@ function RegistroFormulaOptica() {
                     );
                   })}
                 </select>
+
+                {/* NUEVO (diagrama): aviso de la restricción uk_formula */}
+                <small className="text-muted">
+                  Cada consulta puede tener una sola fórmula óptica.
+                </small>
 
               </div>
 
@@ -408,7 +433,8 @@ function RegistroFormulaOptica() {
                 />
               </div>
 
-              {/* Adición (para lentes bifocales/progresivos) */}
+              {/* Adición (para lentes bifocales/progresivos).
+                  CAMBIO (diagrama): límite de 100 caracteres (varchar(100)) */}
               <div className="col-md-4">
                 <label className="form-label">
                   Adición
@@ -417,6 +443,7 @@ function RegistroFormulaOptica() {
                 <input
                   type="text"
                   className="form-control"
+                  maxLength={100}
                   placeholder="Ej: +2.00"
                   value={adicion}
                   onChange={(e) =>
@@ -522,16 +549,22 @@ function RegistroFormulaOptica() {
                   Observaciones
                 </label>
 
-                {/* Campo libre para observaciones adicionales de la fórmula */}
+                {/* Campo libre para observaciones adicionales de la fórmula.
+                    CAMBIO (diagrama): límite de 1000 caracteres (varchar(1000)) */}
                 <textarea
                   className="form-control"
                   rows="3"
+                  maxLength={1000}
                   placeholder="Información adicional relevante..."
                   value={observaciones}
                   onChange={(e) =>
                     setObservaciones(e.target.value)
                   }
                 />
+
+                <small className="text-muted">
+                  {observaciones.length}/1000
+                </small>
 
               </div>
 

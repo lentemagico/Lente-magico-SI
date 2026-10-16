@@ -52,13 +52,23 @@ function RegistroAntecedentes() {
   );
 
   // Se obtiene el id de la historia clínica asociada a ese paciente
-  // (requerido para poder guardar el antecedente).
+  // (requerido para poder guardar el antecedente). Esta historia la
+  // genera el módulo de caja cuando agenda la consulta.
   const idHistoria =
     pacienteSeleccionado?.id_historia || "";
 
   // Maneja el envío del formulario de registro de antecedentes.
   const manejarGuardar = async (e) => {
     e.preventDefault();
+
+    // NUEVO: mensaje específico cuando el paciente no tiene historia clínica
+    // (la historia debió generarse al agendar la consulta desde caja).
+    if (idCliente && !idHistoria) {
+      setError(
+        "Este paciente no tiene historia clínica. Debe generarse al agendar la consulta desde caja."
+      );
+      return;
+    }
 
     // Validación: se requiere paciente, historia clínica asociada
     // y el texto de antecedentes no vacío.
@@ -74,7 +84,8 @@ function RegistroAntecedentes() {
     setGuardando(true);
 
     // Objeto con los datos a enviar: id de la historia clínica
-    // y el texto de antecedentes.
+    // y el texto de antecedentes. Coincide con las columnas de la tabla
+    // Antecedentes del diagrama (id_antecedentes lo genera la base de datos).
     const nuevoAntecedente = {
       id_historia: Number(idHistoria),
       antecedentes: antecedentes.trim(),
@@ -209,9 +220,18 @@ function RegistroAntecedentes() {
                   readOnly
                 />
 
-                <small className="text-muted">
-                  Se obtiene automáticamente al
-                  seleccionar el paciente.
+                {/* CAMBIO: si el paciente no tiene historia se advierte en rojo;
+                    la historia la genera caja al agendar la consulta */}
+                <small
+                  className={
+                    idCliente && !idHistoria
+                      ? "text-danger"
+                      : "text-muted"
+                  }
+                >
+                  {idCliente && !idHistoria
+                    ? "Sin historia clínica: debe generarse al agendar la consulta desde caja."
+                    : "Se obtiene automáticamente al seleccionar el paciente."}
                 </small>
               </div>
             </div>
@@ -222,7 +242,10 @@ function RegistroAntecedentes() {
 
             <div className="row g-3">
 
-              {/* Antecedentes: solo permite letras y espacios (con tildes/ñ) */}
+              {/* Antecedentes: permite letras, números, espacios y puntuación
+                  básica (con tildes/ñ). Límite de 1000 caracteres según el
+                  diagrama (varchar(1000)). Cada registro es un antecedente nuevo
+                  de la historia (una historia puede tener varios). */}
               <div className="col-12">
                 <label className="form-label">
                   Antecedentes{" "}
@@ -232,13 +255,18 @@ function RegistroAntecedentes() {
                 <textarea
                   className="form-control"
                   rows="4"
+                  maxLength={1000}
                   placeholder="Ejemplo: antecedentes familiares de glaucoma..."
                   value={antecedentes}
                   onChange={(e) =>
-                    setAntecedentes(e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, ""))
+                    setAntecedentes(e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑüÜ0-9\s]/g, ""))
                   }
                   required
                 />
+
+                <small className="text-muted">
+                  {antecedentes.length}/1000
+                </small>
               </div>
 
             </div>

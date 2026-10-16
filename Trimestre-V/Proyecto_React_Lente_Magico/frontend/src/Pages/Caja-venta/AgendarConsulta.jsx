@@ -4,6 +4,10 @@
 // 3. useCallback: para memorizar (cachear) una función y que no se recree en cada render
 import React, { useState, useEffect, useCallback } from "react";
 
+// NUEVO: useNavigate permite ir al formulario de registrar consulta
+// cuando el optómetra presiona el botón "Atender".
+import { useNavigate, useLocation } from "react-router-dom";
+
 // Importamos componentes ya armados de la librería react-bootstrap,
 import {
   Modal, // Ventana para el formulario de crear/editar
@@ -19,17 +23,17 @@ import {
 // Al ser "localhost:5000" solo funciona en desarrollo local.
 const API_URL = "http://localhost:5000/api/agendar-consulta";
 
+// NUEVO: endpoint con los clientes ya registrados (id_cliente, nombre, numeroDocumento).
+// Ajústalo al endpoint real de tu backend.
+const CLIENTES_URL = "http://localhost:5000/api/optometra/cliente";
+
 // Objeto que define cómo se ve un formulario "vacío" o recién iniciado.
 // Se usa como valor inicial del estado del formulario y también para
 // resetearlo cuando se abre el modal de "Nueva Consulta".
 const formularioInicial = {
-  primer_nombre: "",
-  segundo_nombre: "",
-  primer_apellido: "",
-  segundo_apellido: "",
-  id_tipo_documento: "",
-  numero_documento: "",
-  fecha_nacimiento: "",
+  // NUEVO (diagrama): agenda_consulta solo guarda el id del cliente ya registrado,
+  // por eso ya no se piden nombres, documento ni fecha de nacimiento.
+  id_cliente: "",
   motivo: "",
   fecha_hora: "",
   estado: "Pendiente", // Por defecto, toda consulta nueva nace en estado "Pendiente"
@@ -37,7 +41,20 @@ const formularioInicial = {
 
 // Componente funcional principal. Es un "componente de página" que
 // contiene toda la lógica de listar, buscar, crear, editar y eliminar consultas.
-const AgendarConsulta = () => {
+// NUEVO: recibe la prop "modoOptometra" (false por defecto). Con false el
+// componente funciona igual que en caja; con true se oculta crear/editar/eliminar
+// y se muestra el botón "Atender" para el módulo de optometría.
+const AgendarConsulta = ({ modoOptometra = false }) => {
+  // NUEVO: navegación hacia el formulario de registrar consulta
+  const navigate = useNavigate();
+
+  // NUEVO: lee los datos que llegan desde el listado de clientes
+  // (navigate("/caja/agendar-consulta", { state: { id_cliente } })).
+  const location = useLocation();
+
+  // NUEVO: lista de clientes ya registrados para el <select> del modal.
+  const [clientes, setClientes] = useState([]);
+
   // ============================================================
   // ESTADOS
   // ============================================================
@@ -159,6 +176,41 @@ const AgendarConsulta = () => {
   }, [loadConsultas]);
 
   // ============================================================
+  // CARGAR CLIENTES
+  // ============================================================
+  // NUEVO: se cargan los clientes ya registrados para elegirlos en el modal
+  // en lugar de volver a capturar sus datos personales.
+  useEffect(() => {
+    if (modoOptometra) return; // el optómetra no agenda, no necesita la lista
+
+    fetch(CLIENTES_URL)
+      .then((res) => res.json().catch(() => []))
+      .then((data) => {
+        setClientes(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Error al cargar clientes:", err);
+      });
+  }, [modoOptometra]);
+
+  // NUEVO: si se llegó desde el listado de clientes (botón "Agendar consulta"),
+  // se abre el modal de nueva consulta con ese cliente ya seleccionado.
+  useEffect(() => {
+    const idClienteState = location.state?.id_cliente;
+
+    if (modoOptometra || !idClienteState) return;
+
+    setEditingConsulta(null);
+    setFormData({ ...formularioInicial, id_cliente: String(idClienteState) });
+    setValidated(false);
+    setShowModal(true);
+
+    // Se limpia el state para que al recargar no se vuelva a abrir el modal
+    navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ============================================================
   // CAMBIAR PÁGINA
   // ============================================================
   // Handler que se llama cuando el usuario hace click en un número de página
@@ -198,17 +250,8 @@ const AgendarConsulta = () => {
     // Copiamos los datos de la consulta seleccionada al formulario,
     // usando '' como valor por defecto si algún campo viene vacío/null
     setFormData({
-      primer_nombre: consulta.primer_nombre || "",
-      segundo_nombre: consulta.segundo_nombre || "",
-      primer_apellido: consulta.primer_apellido || "",
-      segundo_apellido: consulta.segundo_apellido || "",
-      id_tipo_documento: consulta.id_tipo_documento || "",
-      numero_documento: consulta.numero_documento || "",
-      // La fecha viene en formato completo (con hora), pero el input type="date"
-      // solo necesita "YYYY-MM-DD", por eso se recortan los primeros 10 caracteres
-      fecha_nacimiento: consulta.fecha_nacimiento
-        ? String(consulta.fecha_nacimiento).substring(0, 10)
-        : "",
+      // NUEVO: el cliente ya está registrado, solo se guarda su id
+      id_cliente: consulta.id_cliente ? String(consulta.id_cliente) : "",
       motivo: consulta.motivo || "",
       // El input type="datetime-local" espera "YYYY-MM-DDTHH:mm",
       // por eso se recortan los primeros 16 caracteres
@@ -254,6 +297,27 @@ const AgendarConsulta = () => {
   };
 
   // ============================================================
+  // ATENDER CONSULTA (solo módulo de optometría)
+  // ============================================================
+  // NUEVO: una consulta solo se puede atender si está Pendiente
+  // (no si ya fue Completada o Cancelada)
+  const esAtendible = (consulta) =>
+    !consulta.estado || consulta.estado === "Pendiente";
+
+  // NUEVO: lleva al formulario de registrar consulta con la cita identificada.
+  // Se envía el numero_documento porque esta agenda lo trae siempre; el
+  // formulario lo usa para seleccionar al paciente automáticamente.
+  const handleAtender = (consulta) => {
+    navigate("/optometra/agregar-consulta", {
+      state: {
+        id_agenda: consulta.id_agenda,
+        id_cliente: consulta.id_cliente || null,
+        numero_documento: consulta.numero_documento,
+      },
+    });
+  };
+
+  // ============================================================
   // GUARDAR / ACTUALIZAR CONSULTA
   // ============================================================
   // Handler del submit del formulario (se dispara al hacer click en "Guardar"/"Actualizar")
@@ -275,11 +339,9 @@ const AgendarConsulta = () => {
     // Se arma el objeto que se enviará al backend, a partir de formData
     const payload = {
       ...formData,
-      // Convierte el tipo de documento (string del <select>) a número entero
-      id_tipo_documento: parseInt(formData.id_tipo_documento, 10),
-      // Los campos opcionales, si están vacíos, se envían como null en vez de ''
-      segundo_nombre: formData.segundo_nombre || null,
-      segundo_apellido: formData.segundo_apellido || null,
+      // NUEVO: convierte el id del cliente (string del <select>) a número entero
+      id_cliente: parseInt(formData.id_cliente, 10),
+      motivo: formData.motivo.trim(),
     };
 
     try {
@@ -442,7 +504,10 @@ const AgendarConsulta = () => {
   return (
     <div className="container-fluid">
       {/* Título principal de la página */}
-      <h2 className="mb-4">Gestión de Consultas</h2>
+      {/* NUEVO: en modo optómetra el título cambia a "Consultas agendadas" */}
+      <h2 className="mb-4">
+        {modoOptometra ? "Consultas agendadas" : "Gestión de Consultas"}
+      </h2>
 
       {/* ======================================================
           ALERTAS
@@ -494,10 +559,14 @@ const AgendarConsulta = () => {
 
         {/* Columna derecha: botón para abrir el modal de nueva consulta */}
         <div className="col-md-6 text-end">
-          <Button variant="primary" onClick={handleNewConsulta}>
-            <i className="bi bi-plus-circle me-2"></i>
-            Nueva Consulta
-          </Button>
+          {/* NUEVO: el optómetra no agenda consultas, por eso el botón
+              solo se muestra cuando NO está en modo optómetra */}
+          {!modoOptometra && (
+            <Button variant="primary" onClick={handleNewConsulta}>
+              <i className="bi bi-plus-circle me-2"></i>
+              Nueva Consulta
+            </Button>
+          )}
         </div>
       </div>
 
@@ -608,28 +677,45 @@ const AgendarConsulta = () => {
 
                 {/* Columna: botones de acciones (editar / eliminar) */}
                 <td>
-                  {/* EDITAR: abre el modal precargado con los datos de esta fila */}
-                  <Button
-                    variant="warning"
-                    size="sm"
-                    className="me-2" // margen a la derecha para separarlo del botón eliminar
-                    onClick={() => handleEditConsulta(consulta)}
-                    title="Editar" // texto que aparece al pasar el mouse (tooltip nativo)
-                  >
-                    <i className="bi bi-pencil me-1"></i>
-                    ✏️
-                  </Button>
+                  {/* NUEVO: en modo optómetra solo se muestra "Atender"
+                      (deshabilitado si la consulta ya no está Pendiente);
+                      en caja se muestran los botones de editar y eliminar */}
+                  {modoOptometra ? (
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={() => handleAtender(consulta)}
+                      disabled={!esAtendible(consulta)}
+                      title="Atender consulta"
+                    >
+                      Atender
+                    </Button>
+                  ) : (
+                    <>
+                      {/* EDITAR: abre el modal precargado con los datos de esta fila */}
+                      <Button
+                        variant="warning"
+                        size="sm"
+                        className="me-2" // margen a la derecha para separarlo del botón eliminar
+                        onClick={() => handleEditConsulta(consulta)}
+                        title="Editar" // texto que aparece al pasar el mouse (tooltip nativo)
+                      >
+                        <i className="bi bi-pencil me-1"></i>
+                        ✏️
+                      </Button>
 
-                  {/* ELIMINAR: pide confirmación y borra la fila */}
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleDeleteConsulta(consulta.id_agenda)}
-                    title="Eliminar"
-                  >
-                    <i className="bi bi-trash me-1"></i>
-                    🗑️
-                  </Button>
+                      {/* ELIMINAR: pide confirmación y borra la fila */}
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDeleteConsulta(consulta.id_agenda)}
+                        title="Eliminar"
+                      >
+                        <i className="bi bi-trash me-1"></i>
+                        🗑️
+                      </Button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))
@@ -713,198 +799,41 @@ const AgendarConsulta = () => {
         >
           <Modal.Body>
             <div className="row">
-              {/* PRIMER NOMBRE (obligatorio) */}
-              <div className="col-md-6 mb-3">
+              {/* NUEVO: CLIENTE (obligatorio, se elige entre los ya registrados;
+                  así no se vuelven a pedir sus datos personales) */}
+              <div className="col-12 mb-3">
                 <Form.Group>
-                  <Form.Label>Primer Nombre *</Form.Label>
-
-                  {/* PRIMER NOMBRE */}
-                  <Form.Control
-                    type="text"
-                    name="primer_nombre"
-                    value={formData.primer_nombre}
-                    onChange={(e) =>
-                      handleInputChange({
-                        target: {
-                          name: "primer_nombre",
-                          value: e.target.value.replace(
-                            /[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g,
-                            "",
-                          ),
-                        },
-                      })
-                    }
-                    required
-                    placeholder="Primer nombre del paciente"
-                  />
-
-                  {/* Mensaje que aparece solo si el campo es inválido y ya se validó el form */}
-                  <Form.Control.Feedback type="invalid">
-                    El primer nombre es requerido
-                  </Form.Control.Feedback>
-                </Form.Group>
-              </div>
-
-              {/* SEGUNDO NOMBRE (opcional, sin "required") */}
-              <div className="col-md-6 mb-3">
-                <Form.Group>
-                  <Form.Label>Segundo Nombre</Form.Label>
-
-                  {/* SEGUNDO NOMBRE */}
-                  <Form.Control
-                    type="text"
-                    name="segundo_nombre"
-                    value={formData.segundo_nombre}
-                    onChange={(e) =>
-                      handleInputChange({
-                        target: {
-                          name: "segundo_nombre",
-                          value: e.target.value.replace(
-                            /[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g,
-                            "",
-                          ),
-                        },
-                      })
-                    }
-                    placeholder="Segundo nombre (opcional)"
-                  />
-                </Form.Group>
-              </div>
-
-              {/* PRIMER APELLIDO (obligatorio) */}
-              <div className="col-md-6 mb-3">
-                <Form.Group>
-                  <Form.Label>Primer Apellido *</Form.Label>
-
-                  {/* PRIMER APELLIDO */}
-                  <Form.Control
-                    type="text"
-                    name="primer_apellido"
-                    value={formData.primer_apellido}
-                    onChange={(e) =>
-                      handleInputChange({
-                        target: {
-                          name: "primer_apellido",
-                          value: e.target.value.replace(
-                            /[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g,
-                            "",
-                          ),
-                        },
-                      })
-                    }
-                    required
-                    placeholder="Primer apellido del paciente"
-                  />
-
-                  <Form.Control.Feedback type="invalid">
-                    El primer apellido es requerido
-                  </Form.Control.Feedback>
-                </Form.Group>
-              </div>
-
-              {/* SEGUNDO APELLIDO (opcional) */}
-              <div className="col-md-6 mb-3">
-                <Form.Group>
-                  <Form.Label>Segundo Apellido</Form.Label>
-
-                  {/* SEGUNDO APELLIDO */}
-                  <Form.Control
-                    type="text"
-                    name="segundo_apellido"
-                    value={formData.segundo_apellido}
-                    onChange={(e) =>
-                      handleInputChange({
-                        target: {
-                          name: "segundo_apellido",
-                          value: e.target.value.replace(
-                            /[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g,
-                            "",
-                          ),
-                        },
-                      })
-                    }
-                    placeholder="Segundo apellido (opcional)"
-                  />
-                </Form.Group>
-              </div>
-
-              {/* TIPO DE DOCUMENTO (obligatorio, es un <select>) */}
-              <div className="col-md-6 mb-3">
-                <Form.Group>
-                  <Form.Label>Tipo Documento *</Form.Label>
+                  <Form.Label>Cliente *</Form.Label>
 
                   <Form.Select
-                    name="id_tipo_documento"
-                    value={formData.id_tipo_documento}
+                    name="id_cliente"
+                    value={formData.id_cliente}
                     onChange={handleInputChange}
                     required
+                    disabled={editingConsulta !== null}
                   >
-                    {/* Opción "placeholder": no seleccionable directamente,
-                        disabled evita elegirla, hidden la oculta de la lista desplegable */}
                     <option value="" disabled hidden>
-                      Seleccione un tipo
+                      Seleccione un cliente
                     </option>
 
-                    <option value="1">Cédula de Ciudadanía (C.C.)</option>
-
-                    <option value="2">Cédula de Extranjería (C.E.)</option>
-
-                    <option value="3">Tarjeta de Identidad (T.I.)</option>
-
-                    <option value="4">Pasaporte</option>
+                    {clientes.map((cliente) => (
+                      <option
+                        key={cliente.id_cliente}
+                        value={cliente.id_cliente}
+                      >
+                        {cliente.nombre} — Documento: {cliente.numeroDocumento}
+                      </option>
+                    ))}
                   </Form.Select>
 
                   <Form.Control.Feedback type="invalid">
-                    El tipo de documento es requerido
+                    El cliente es requerido
                   </Form.Control.Feedback>
-                </Form.Group>
-              </div>
 
-              {/* NÚMERO DE DOCUMENTO (obligatorio) */}
-              <div className="col-md-6 mb-3">
-                <Form.Group>
-                  <Form.Label>Número de Documento *</Form.Label>
-
-                  <Form.Control
-                    type="text"
-                    name="numero_documento"
-                    value={formData.numero_documento}
-                    onChange={(e) =>
-                      handleInputChange({
-                        target: {
-                          name: "numero_documento",
-                          value: e.target.value.replace(/\D/g, ""),
-                        },
-                      })
-                    }
-                    required
-                    disabled={editingConsulta !== null}
-                    placeholder="Número de documento"
-                    maxLength="20"
-                  />
-
-                  <Form.Control.Feedback type="invalid">
-                    El número de documento es requerido
-                  </Form.Control.Feedback>
-                </Form.Group>
-              </div>
-
-              {/* FECHA DE NACIMIENTO (obligatorio, selector de fecha) */}
-              <div className="col-md-6 mb-3">
-                <Form.Group>
-                  <Form.Label>Fecha de Nacimiento *</Form.Label>
-
-                  <Form.Control
-                    type="date" // muestra el selector de calendario nativo del navegador
-                    name="fecha_nacimiento"
-                    value={formData.fecha_nacimiento}
-                    onChange={handleInputChange}
-                    required
-                  />
-
-                  <Form.Control.Feedback type="invalid">
-                    La fecha de nacimiento es requerida
-                  </Form.Control.Feedback>
+                  <Form.Text muted>
+                    Si el cliente no aparece, regístralo primero en "Registrar
+                    cliente".
+                  </Form.Text>
                 </Form.Group>
               </div>
 
@@ -927,6 +856,32 @@ const AgendarConsulta = () => {
                 </Form.Group>
               </div>
 
+              {/* NUEVO: ESTADO DE LA CONSULTA (obligatorio, es un <select>).
+                  Coincide con agenda_consulta.estado y con los colores de las
+                  badges de la tabla (Pendiente / Completada / Cancelada) */}
+              <div className="col-md-6 mb-3">
+                <Form.Group>
+                  <Form.Label>Estado *</Form.Label>
+
+                  <Form.Select
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="Pendiente">Pendiente</option>
+
+                    <option value="Completada">Completada</option>
+
+                    <option value="Cancelada">Cancelada</option>
+                  </Form.Select>
+
+                  <Form.Control.Feedback type="invalid">
+                    El estado es requerido
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </div>
+
               {/* MOTIVO DE LA CONSULTA (obligatorio, texto largo -> textarea) */}
               <div className="col-12 mb-3">
                 <Form.Group>
@@ -938,9 +893,12 @@ const AgendarConsulta = () => {
                     name="motivo"
                     value={formData.motivo}
                     onChange={handleInputChange}
+                    maxLength={40} // NUEVO: agenda_consulta.motivo es varchar(40)
                     required
                     placeholder="Ej: Valoración de agudeza visual y control de fórmula"
                   />
+
+                  <Form.Text muted>{formData.motivo.length}/40</Form.Text>
 
                   <Form.Control.Feedback type="invalid">
                     El motivo es requerido

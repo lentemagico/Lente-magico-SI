@@ -96,9 +96,9 @@ function Nav() {
 
               {/* Productos */}
               <NavDropdown title="Productos" id="dropdown-productos" drop="end">
-                <NavDropdown.Item as={Link} to="/caja/agregar-productos">
-                  Agregar Productos
-                </NavDropdown.Item>
+                
+                
+                
 
                 <NavDropdown.Item as={Link} to="/caja/cantidad-productos-vendidos">
                   Cantidad de Productos Vendidos
