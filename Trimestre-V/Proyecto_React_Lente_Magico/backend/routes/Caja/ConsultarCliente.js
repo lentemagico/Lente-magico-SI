@@ -21,6 +21,7 @@ router.get('/', async (req, res) => {
       SELECT
         c.id_cliente,
         dp.numero_documento,
+        dp.id_tipo_documento,
         td.sigla,
         td.nombre_documento,
         dp.primer_nombre,
@@ -38,6 +39,8 @@ router.get('/', async (req, res) => {
       INNER JOIN Tipo_documento td
         ON dp.id_tipo_documento = td.id
     `;
+    // NUEVO: se agrego dp.id_tipo_documento al SELECT para que el modal de edicion
+    // pueda precargar el tipo de documento del cliente
 
     // Consulta aparte solo para contar el total de resultados (necesaria para la paginacion)
     let countQuery = `
@@ -149,6 +152,229 @@ router.get('/documento/:documento', async (req, res) => {
     res.status(500).json({
       error: error.message
     });
+
+  }
+
+});
+
+
+// NUEVO: Editar cliente
+// Actualiza los datos personales del cliente (los datos viven en Datos_personales)
+router.put('/:id', async (req, res) => {
+
+  try {
+
+    const {
+      id_tipo_documento,
+      numero_documento,
+      primer_nombre,
+      segundo_nombre,
+      primer_apellido,
+      segundo_apellido,
+      fecha_nacimiento,
+      genero,
+      correo,
+      telefono
+    } = req.body;
+
+    // Campos obligatorios (los mismos que tienen "required" en el modal)
+    if (
+      !id_tipo_documento ||
+      !numero_documento ||
+      !primer_nombre ||
+      !primer_apellido ||
+      !fecha_nacimiento
+    ) {
+
+      return res.status(400).json({
+        error: 'Faltan campos obligatorios'
+      });
+
+    }
+
+    // Se busca el registro de datos personales que pertenece a este cliente
+    const [cli] = await pool.query(
+      'SELECT id_datos_personales FROM Cliente WHERE id_cliente = ?',
+      [req.params.id]
+    );
+
+    if (cli.length === 0) {
+
+      return res.status(404).json({
+        error: 'Cliente no encontrado'
+      });
+
+    }
+
+    const idDatos = cli[0].id_datos_personales;
+
+    // numero_documento es UNIQUE: no puede pertenecer a otra persona
+    const [dupDoc] = await pool.query(
+      'SELECT id FROM Datos_personales WHERE numero_documento = ? AND id <> ?',
+      [numero_documento, idDatos]
+    );
+
+    if (dupDoc.length > 0) {
+
+      return res.status(409).json({
+        error: 'Ya existe una persona con ese numero de documento'
+      });
+
+    }
+
+    // correo tambien es UNIQUE (solo se revisa si se escribio uno)
+    if (correo) {
+
+      const [dupCorreo] = await pool.query(
+        'SELECT id FROM Datos_personales WHERE correo = ? AND id <> ?',
+        [correo, idDatos]
+      );
+
+      if (dupCorreo.length > 0) {
+
+        return res.status(409).json({
+          error: 'Ya existe una persona con ese correo'
+        });
+
+      }
+
+    }
+
+    // Los campos opcionales vacios se guardan como NULL
+    // (con UNIQUE, dos correos '' chocarian entre si, pero varios NULL si se permiten)
+    await pool.query(`
+      UPDATE Datos_personales SET
+        id_tipo_documento = ?,
+        numero_documento = ?,
+        primer_nombre = ?,
+        segundo_nombre = ?,
+        primer_apellido = ?,
+        segundo_apellido = ?,
+        fecha_nacimiento = ?,
+        genero = ?,
+        correo = ?,
+        telefono = ?
+      WHERE id = ?
+    `, [
+      id_tipo_documento,
+      numero_documento,
+      primer_nombre,
+      segundo_nombre || null,
+      primer_apellido,
+      segundo_apellido || null,
+      fecha_nacimiento,
+      genero || null,
+      correo || null,
+      telefono || null,
+      idDatos
+    ]);
+
+    res.json({
+      mensaje: 'Cliente actualizado exitosamente'
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      error: error.message
+    });
+
+  }
+
+});
+
+
+// NUEVO: Eliminar cliente
+// Se rechaza si el cliente tiene ventas, consultas agendadas o historia clinica
+// (las consultas dependen de una agenda y de una historia, por eso quedan cubiertas)
+router.delete('/:id', async (req, res) => {
+
+  // Se usa una conexion propia porque el borrado va dentro de una transaccion
+  const conn = await pool.getConnection();
+
+  try {
+
+    const id = req.params.id;
+
+    const [cli] = await conn.query(
+      'SELECT id_datos_personales FROM Cliente WHERE id_cliente = ?',
+      [id]
+    );
+
+    if (cli.length === 0) {
+
+      return res.status(404).json({
+        error: 'Cliente no encontrado'
+      });
+
+    }
+
+    const idDatos = cli[0].id_datos_personales;
+
+    // Se revisa si el cliente esta siendo usado en otras tablas
+    const [[ventas]] = await conn.query(
+      'SELECT COUNT(*) AS n FROM Venta WHERE id_cliente = ?',
+      [id]
+    );
+
+    const [[agendas]] = await conn.query(
+      'SELECT COUNT(*) AS n FROM Agenda_consulta WHERE id_cliente = ?',
+      [id]
+    );
+
+    const [[historias]] = await conn.query(
+      'SELECT COUNT(*) AS n FROM Historia_clinica WHERE id_cliente = ?',
+      [id]
+    );
+
+    if (ventas.n > 0 || agendas.n > 0 || historias.n > 0) {
+
+      return res.status(409).json({
+        error: 'No se puede eliminar: el cliente tiene ventas, consultas agendadas o historia clinica asociadas'
+      });
+
+    }
+
+    // Datos_personales tambien la puede usar un Usuario del sistema;
+    // en ese caso se borra el cliente pero se conservan sus datos personales
+    const [[usuario]] = await conn.query(
+      'SELECT COUNT(*) AS n FROM Usuario WHERE id_datos_personales = ?',
+      [idDatos]
+    );
+
+    await conn.beginTransaction();
+
+    await conn.query(
+      'DELETE FROM Cliente WHERE id_cliente = ?',
+      [id]
+    );
+
+    if (usuario.n === 0) {
+
+      await conn.query(
+        'DELETE FROM Datos_personales WHERE id = ?',
+        [idDatos]
+      );
+
+    }
+
+    await conn.commit();
+
+    res.json({
+      mensaje: 'Cliente eliminado exitosamente'
+    });
+
+  } catch (error) {
+
+    await conn.rollback();
+
+    res.status(500).json({
+      error: error.message
+    });
+
+  } finally {
+
+    conn.release();
 
   }
 

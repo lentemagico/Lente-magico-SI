@@ -60,7 +60,7 @@ router.get("/", async (req, res) => {
 // POST /api/administrador/usuarios
 // Crea un nuevo usuario junto con sus datos personales y su rol asignado
 router.post("/", async (req, res) => {
-  const connection = await pool.getConnection();
+  let connection;
 
   try {
     const {
@@ -99,6 +99,7 @@ router.post("/", async (req, res) => {
       });
     }
 
+    connection = await pool.getConnection();
     await connection.beginTransaction();
 
     // Datos_personales
@@ -180,7 +181,7 @@ router.post("/", async (req, res) => {
       id_datos_personales: idDatosPersonales,
     });
   } catch (error) {
-    await connection.rollback();
+    if (connection) await connection.rollback();
     console.error("Error al crear usuario:", error);
 
     if (error.code === "ER_DUP_ENTRY") {
@@ -195,12 +196,173 @@ router.post("/", async (req, res) => {
       detalle: error.message,
     });
   } finally {
-    connection.release();
+    if (connection) connection.release();
   }
-
-
-  
 });
 
+// PUT /api/administrador/usuarios/:id
+router.put("/:id", async (req, res) => {
+  let connection;
+
+  try {
+    const { id } = req.params;
+    const {
+      id_tipo_documento, numero_documento,
+      primer_nombre, segundo_nombre, primer_apellido,
+      segundo_apellido, fecha_nacimiento, genero,
+      correo, telefono, id_autorizacion, contrasenia,
+      activar_usuario, clave_idioma, clave_activacion,
+    } = req.body;
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [usuarios] = await connection.query(
+      "SELECT id_datos_personales FROM Usuario WHERE id = ?",
+      [id]
+    );
+
+    if (!usuarios.length) {
+      await connection.rollback();
+      return res.status(404).json({ mensaje: "Usuario no encontrado" });
+    }
+
+    const idDatos = usuarios[0].id_datos_personales;
+
+    await connection.query(
+      `UPDATE Datos_personales SET
+       id_tipo_documento=?, numero_documento=?, primer_nombre=?,
+       segundo_nombre=?, primer_apellido=?, segundo_apellido=?,
+       fecha_nacimiento=?, genero=?, correo=?, telefono=?
+       WHERE id=?`,
+      [
+        id_tipo_documento, numero_documento, primer_nombre,
+        segundo_nombre || null, primer_apellido,
+        segundo_apellido || null, fecha_nacimiento || null,
+        genero || null, correo, telefono || null, idDatos,
+      ]
+    );
+
+    const campos = [
+      activar_usuario ?? 1,
+      clave_idioma ?? "es",
+      clave_activacion ?? null,
+    ];
+
+    let sql = `UPDATE Usuario SET activar_usuario=?,
+               clave_idioma=?, clave_activacion=?`;
+
+    if (contrasenia) {
+      sql += ", contrasenia=?";
+      campos.push(await bcrypt.hash(contrasenia, 10));
+    }
+
+    sql += " WHERE id=?";
+    campos.push(id);
+
+    await connection.query(sql, campos);
+
+    const [roles] = await connection.query(
+      "SELECT id_autorizacion FROM Autorizacion_usuario WHERE id_sistema_usuario=?",
+      [id]
+    );
+
+    if (roles.length) {
+      await connection.query(
+        `UPDATE Autorizacion_usuario
+         SET id_autorizacion=? WHERE id_sistema_usuario=?`,
+        [id_autorizacion, id]
+      );
+    } else {
+      await connection.query(
+        `INSERT INTO Autorizacion_usuario
+         (id_sistema_usuario, id_autorizacion) VALUES (?, ?)`,
+        [id, id_autorizacion]
+      );
+    }
+
+    await connection.commit();
+
+    res.json({ mensaje: "Usuario actualizado correctamente" });
+  } catch (error) {
+    if (connection) await connection.rollback();
+
+    res.status(error.code === "ER_DUP_ENTRY" ? 409 : 500).json({
+      mensaje: "Error al actualizar usuario",
+      detalle: error.message,
+    });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+
+// DELETE /api/administrador/usuarios/:id
+// Elimina un usuario y sus relaciones
+
+router.delete("/:id", async (req, res) => {
+  let connection;
+
+  try {
+    const { id } = req.params;
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Buscar los datos personales del usuario
+    const [usuarios] = await connection.query(
+      "SELECT id_datos_personales FROM Usuario WHERE id = ?",
+      [id]
+    );
+
+    if (usuarios.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        mensaje: "Usuario no encontrado",
+      });
+    }
+
+    const idDatos = usuarios[0].id_datos_personales;
+
+    // Eliminar la autorización asignada
+    await connection.query(
+      "DELETE FROM Autorizacion_usuario WHERE id_sistema_usuario = ?",
+      [id]
+    );
+
+    // Eliminar el usuario
+    await connection.query(
+      "DELETE FROM Usuario WHERE id = ?",
+      [id]
+    );
+
+    // Eliminar los datos personales
+    await connection.query(
+      "DELETE FROM Datos_personales WHERE id = ?",
+      [idDatos]
+    );
+
+    await connection.commit();
+
+    res.json({
+      mensaje: "Usuario eliminado correctamente",
+    });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+
+    console.error("Error al eliminar usuario:", error);
+
+    res.status(500).json({
+      mensaje: "Error al eliminar el usuario",
+      detalle: error.message,
+    });
+
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
+  
 
 export default router;

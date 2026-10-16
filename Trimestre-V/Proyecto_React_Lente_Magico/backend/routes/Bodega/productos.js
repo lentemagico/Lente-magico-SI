@@ -4,11 +4,30 @@ import pool from '../../db.js';
 const router = express.Router();
 
 // GET /api/productos — trae todos los productos con el nombre de su categoría
+// Acepta ?search= (filtra por nombre o código) y ?limit= (usados por Confirmar Venta)
 router.get('/', async (req, res) => {
     try {
+        const { search, limit } = req.query;
+
+        const condiciones = [];
+        const params = [];
+
+        // Si viene "search", se filtra por nombre o código (parametrizado: evita SQL injection)
+        if (search && search.trim() !== '') {
+            condiciones.push('(p.nombre LIKE ? OR p.codigo_producto LIKE ?)');
+            params.push(`%${search.trim()}%`, `%${search.trim()}%`);
+        }
+
+        // Solo se aplica el límite si es un número válido (máximo 100)
+        const limite = Number.parseInt(limit, 10);
+        const limitSql = Number.isInteger(limite) && limite > 0 ? `LIMIT ${Math.min(limite, 100)}` : '';
+
+        const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+
         const [productos] = await pool.query(`
             SELECT
                 p.id_producto AS id,
+                p.id_producto,
                 p.codigo_producto,
                 p.nombre,
                 p.descripcion,
@@ -22,9 +41,12 @@ router.get('/', async (req, res) => {
             FROM Producto p
             LEFT JOIN Cat_producto c
                 ON p.id_categoria = c.id_categoria
+            ${where}
             ORDER BY p.id_producto DESC
-        `);
+            ${limitSql}
+        `, params);
 
+        // Se mantiene el arreglo plano para no romper las otras pantallas que ya lo consumen
         res.json(productos);
 
     } catch (error) {

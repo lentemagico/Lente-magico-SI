@@ -19,7 +19,6 @@ import generarFormulaRoutes from './routes/Optometra/generarFormula.js';
 // Modulo Caja Rutas
 
 import AgendarConsultaRoutes from './routes/Caja/AgendarConsulta.js';
-import AgregarProductosRoutes from './routes/Caja/AgregarProductos.js';
 import CantidadProductosVendidosRoutes from './routes/Caja/CantidadProductosVendidos.js';
 import ConfirmacionBancoRoutes from './routes/Caja/ConfirmacionBanco.js';
 import ConfirmarVentaRoutes from './routes/Caja/ConfirmarVenta.js';
@@ -78,7 +77,7 @@ app.use('/api/optometra', historiaClinicaRoutes);
 
 // ============================================================================== //
 app.use('/api/agendar-consulta', AgendarConsultaRoutes);
-app.use('/api/productos', AgregarProductosRoutes);
+app.use('/api/productos', productosRoutes);
 app.use('/api/cantidad-productos-vendidos', CantidadProductosVendidosRoutes);
 app.use('/api/confirmacion-banco', ConfirmacionBancoRoutes);
 app.use('/api/confirmar-venta', ConfirmarVentaRoutes);

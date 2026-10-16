@@ -190,14 +190,16 @@ router.get('/:id', async (req, res) => {
 // POST /api/agendar-consulta
 // ================================================================
 // Agenda una nueva consulta, validando que el cliente exista y que no tenga ya una cita en esa fecha
+// CAMBIO: ahora el frontend envia el id_cliente (el cliente ya esta registrado), en lugar de
+// volver a pedir el tipo y numero de documento. Ademas, si el cliente aun no tiene historia
+// clinica, se crea en este momento.
 router.post('/', async (req, res) => {
   // Se obtiene una conexion individual del pool, necesaria para poder usar transacciones
   const connection = await pool.getConnection();
 
   try {
     const {
-      id_tipo_documento,
-      numero_documento,
+      id_cliente,
       fecha_hora,
       motivo,
       estado
@@ -205,15 +207,21 @@ router.post('/', async (req, res) => {
 
     // Validaciones
     if (
-      !id_tipo_documento ||
-      !numero_documento ||
+      !id_cliente ||
       !motivo ||
       !fecha_hora ||
       !estado
     ) {
       return res.status(400).json({
         error:
-          'Tipo de documento, número de documento, fecha y hora, motivo y estado son obligatorios'
+          'Cliente, fecha y hora, motivo y estado son obligatorios'
+      });
+    }
+
+    // NUEVO: agenda_consulta.motivo es varchar(40)
+    if (String(motivo).length > 40) {
+      return res.status(400).json({
+        error: 'El motivo no puede superar los 40 caracteres'
       });
     }
 
@@ -221,9 +229,9 @@ router.post('/', async (req, res) => {
     await connection.beginTransaction();
 
     // ============================================================
-    // Buscar al cliente por documento
+    // Verificar que el cliente exista
     // ============================================================
-    // Se busca el cliente combinando numero y tipo de documento, ya que juntos lo identifican de forma unica
+    // CAMBIO: se busca el cliente por su id (ya no por tipo y numero de documento)
     const [clientes] = await connection.query(`
       SELECT
         c.id_cliente,
@@ -237,21 +245,19 @@ router.post('/', async (req, res) => {
       INNER JOIN Datos_personales dp
         ON c.id_datos_personales = dp.id
 
-      WHERE dp.numero_documento = ?
-        AND dp.id_tipo_documento = ?
+      WHERE c.id_cliente = ?
       LIMIT 1
     `, [
-      numero_documento,
-      id_tipo_documento
+      id_cliente
     ]);
 
-    // Si el paciente no esta registrado como cliente, no se puede agendar la cita
+    // Si el cliente no esta registrado, no se puede agendar la cita
     if (clientes.length === 0) {
       await connection.rollback();
 
       return res.status(404).json({
         error:
-          'El paciente no está registrado como cliente. Primero debe registrar al cliente.'
+          'El cliente no está registrado. Primero debe registrar al cliente.'
       });
     }
 
@@ -282,6 +288,39 @@ router.post('/', async (req, res) => {
     }
 
     // ============================================================
+    // Crear la historia clinica (si el cliente aun no tiene una)
+    // ============================================================
+    // NUEVO: la historia clinica se genera al agendar la consulta. Si el cliente ya
+    // tiene una, se reutiliza; si no, se crea con la fecha de apertura de hoy.
+    // IMPORTANTE: ajusta el nombre de la tabla si en tu base de datos se llama distinto.
+    const [historias] = await connection.query(`
+      SELECT id_historia
+      FROM Historia_clinica
+      WHERE id_cliente = ?
+      LIMIT 1
+    `, [
+      cliente.id_cliente
+    ]);
+
+    let idHistoria;
+
+    if (historias.length > 0) {
+      idHistoria = historias[0].id_historia;
+    } else {
+      const [historiaNueva] = await connection.query(`
+        INSERT INTO Historia_clinica (
+          id_cliente,
+          fecha_apertura
+        )
+        VALUES (?, CURDATE())
+      `, [
+        cliente.id_cliente
+      ]);
+
+      idHistoria = historiaNueva.insertId;
+    }
+
+    // ============================================================
     // Crear la consulta
     // ============================================================
     const [result] = await connection.query(`
@@ -305,6 +344,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({
       mensaje: 'Consulta agendada exitosamente',
       id_agenda: result.insertId,
+      id_historia: idHistoria,
       cliente: {
         id_cliente: cliente.id_cliente,
         numero_documento: cliente.numero_documento,
@@ -334,71 +374,48 @@ router.post('/', async (req, res) => {
 // ACTUALIZAR CITA
 // PUT /api/agendar-consulta/:id
 // ================================================================
-// Actualiza una cita existente, volviendo a validar que el cliente exista
+// Actualiza una cita existente (fecha y hora, motivo y estado)
+// CAMBIO: el cliente de una cita ya no se cambia al editarla, por eso ya no se
+// busca por documento: solo se actualizan los datos propios de la cita.
 router.put('/:id', async (req, res) => {
   const connection = await pool.getConnection();
 
   try {
     const {
-      id_tipo_documento,
-      numero_documento,
       fecha_hora,
       motivo,
       estado
     } = req.body;
 
     if (
-      !id_tipo_documento ||
-      !numero_documento ||
       !fecha_hora ||
       !motivo ||
       !estado
     ) {
       return res.status(400).json({
         error:
-          'Tipo de documento, número de documento, fecha y hora, motivo y estado son obligatorios'
+          'Fecha y hora, motivo y estado son obligatorios'
+      });
+    }
+
+    // NUEVO: agenda_consulta.motivo es varchar(40)
+    if (String(motivo).length > 40) {
+      return res.status(400).json({
+        error: 'El motivo no puede superar los 40 caracteres'
       });
     }
 
     await connection.beginTransaction();
 
-    // Buscar cliente
-    const [clientes] = await connection.query(`
-      SELECT c.id_cliente
-      FROM Cliente c
-
-      INNER JOIN Datos_personales dp
-        ON c.id_datos_personales = dp.id
-
-      WHERE dp.numero_documento = ?
-        AND dp.id_tipo_documento = ?
-      LIMIT 1
-    `, [
-      numero_documento,
-      id_tipo_documento
-    ]);
-
-    if (clientes.length === 0) {
-      await connection.rollback();
-
-      return res.status(404).json({
-        error: 'El paciente no está registrado como cliente'
-      });
-    }
-
-    const idCliente = clientes[0].id_cliente;
-
     // Actualizar
     const [result] = await connection.query(`
       UPDATE Agenda_consulta
       SET
-        id_cliente = ?,
         fecha_hora = ?,
         motivo = ?,
         estado = ?
       WHERE id_agenda = ?
     `, [
-      idCliente,
       fecha_hora,
       motivo,
       estado,
@@ -436,3 +453,34 @@ router.put('/:id', async (req, res) => {
 
 
 // ============================================
+// ELIMINAR CITA
+// DELETE /api/agendar-consulta/:id
+// ================================================================
+router.delete('/:id', async (req, res) => {
+  try {
+    const [result] = await pool.query(`
+      DELETE FROM Agenda_consulta
+      WHERE id_agenda = ?
+    `, [req.params.id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        error: 'Consulta no encontrada'
+      });
+    }
+
+    res.json({
+      mensaje: 'Consulta eliminada exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error al eliminar consulta:', error);
+
+    res.status(500).json({
+      error: error.message
+    });
+  }
+});
+
+
+export default router;
