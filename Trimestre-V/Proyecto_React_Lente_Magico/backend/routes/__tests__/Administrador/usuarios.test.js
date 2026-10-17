@@ -53,7 +53,7 @@ beforeEach(() => {
   pool.getConnection.mockResolvedValue(connection);
   bcrypt.hash.mockResolvedValue('hash_seguro');
   // Silenciamos los console.error que provocan los errores simulados
-  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => { });
 });
 
 describe('Pruebas de Caja Blanca - Usuarios', () => {
