@@ -831,8 +831,7 @@ const AgendarConsulta = ({ modoOptometra = false }) => {
                   </Form.Control.Feedback>
 
                   <Form.Text muted>
-                    Si el cliente no aparece, regístralo primero en "Registrar
-                    cliente".
+                 
                   </Form.Text>
                 </Form.Group>
               </div>
@@ -898,7 +897,7 @@ const AgendarConsulta = ({ modoOptometra = false }) => {
                     placeholder="Ej: Valoración de agudeza visual y control de fórmula"
                   />
 
-                  <Form.Text muted>{formData.motivo.length}/40</Form.Text>
+                  
 
                   <Form.Control.Feedback type="invalid">
                     El motivo es requerido

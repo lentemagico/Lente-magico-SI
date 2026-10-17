@@ -288,10 +288,7 @@ function RegistroFormulaOptica() {
                   })}
                 </select>
 
-                {/* NUEVO (diagrama): aviso de la restricción uk_formula */}
-                <small className="text-muted">
-                  Cada consulta puede tener una sola fórmula óptica.
-                </small>
+               
 
               </div>
 
@@ -314,9 +311,7 @@ function RegistroFormulaOptica() {
                   readOnly
                 />
 
-                <small className="text-muted">
-                  Se obtiene automáticamente desde la consulta.
-                </small>
+               
 
               </div>
 
@@ -562,9 +557,7 @@ function RegistroFormulaOptica() {
                   }
                 />
 
-                <small className="text-muted">
-                  {observaciones.length}/1000
-                </small>
+              
 
               </div>
 

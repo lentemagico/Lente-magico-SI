@@ -2,6 +2,16 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../../Styles/AgregarConsulta.css";
 
+// NUEVO (diagrama): devuelve la fecha y hora actual (hora local) en el formato
+// "YYYY-MM-DDTHH:mm" que requiere el input type="datetime-local".
+function ahoraLocal() {
+  const ahora = new Date();
+
+  ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
+
+  return ahora.toISOString().slice(0, 16);
+}
+
 function RegistroConsulta() {
   // NUEVO (diagrama): permite leer los datos que llegan desde la agenda
   // (id_agenda e id_cliente) cuando se atiende una cita agendada por caja.
@@ -22,13 +32,18 @@ function RegistroConsulta() {
   const [diagnostico, setDiagnostico] = useState("");
   const [recomendaciones, setRecomendaciones] = useState("");
 
+  // NUEVO (diagrama): campo "fecha_hora" de la tabla consulta. Es la fecha y hora
+  // en que se genera la consulta (distinta de la fecha y hora de la cita en
+  // agenda_consulta), por eso se llena automáticamente con la fecha y hora actuales.
+  const [fechaHora, setFechaHora] = useState(ahoraLocal());
+
   // NUEVO (diagrama): campo "evolucion" de la tabla consulta (varchar 1000).
   const [evolucion, setEvolucion] = useState("");
 
-  // NUEVO (diagrama): campo "antecedentes" de la tabla Antecedentes (varchar 1000).
-  // Es opcional: la historia clínica ya existe (la crea caja al agendar),
-  // y si se escribe algo se agrega como un nuevo antecedente de esa historia.
-  const [antecedentes, setAntecedentes] = useState("");
+  // NUEVO: citas pendientes que agendó caja (para el <select> de "Cita agendada")
+  // y bandera de carga.
+  const [agendas, setAgendas] = useState([]);
+  const [cargandoAgendas, setCargandoAgendas] = useState(true);
 
   // Mensajes de error/éxito y bandera de guardado en curso.
   const [error, setError] = useState("");
@@ -40,10 +55,14 @@ function RegistroConsulta() {
   // NUEVO (diagrama): id_agenda es opcional. Puede llegar por la ruta
   // (navigate("/optometra/agregar-consulta", { state: { id_agenda, id_cliente } }))
   // o por query string (?id_agenda=12). Si no hay cita, queda en null.
-  const idAgenda =
+  const idAgendaInicial =
     location.state?.id_agenda ||
     new URLSearchParams(location.search).get("id_agenda") ||
     null;
+
+  // NUEVO: cita seleccionada. Empieza con la que llegue por la ruta (si llegó una)
+  // y también se puede elegir en el <select> "Cita agendada" del formulario.
+  const [idAgenda, setIdAgenda] = useState(idAgendaInicial);
 
   // NUEVO: la agenda de caja identifica al paciente por numero_documento,
   // así que si no llega id_cliente se usa el documento para seleccionarlo.
@@ -108,6 +127,53 @@ function RegistroConsulta() {
   }, []);
 
 
+  // NUEVO: Cargar agendas
+  // Se piden las consultas agendadas por caja y se dejan solo las pendientes
+  // para llenar el <select> de "Cita agendada".
+  useEffect(() => {
+    fetch(
+      "http://localhost:5000/api/agendar-consulta?page=1&limit=100&search=Pendiente"
+    )
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(
+            data.error || "No fue posible cargar la agenda."
+          );
+        }
+
+        return data;
+      })
+      .then((data) => {
+        const pendientes = (data.consultas || []).filter(
+          (agenda) => agenda.estado === "Pendiente"
+        );
+
+        setAgendas(pendientes);
+
+        // Si se llegó desde una cita (botón "Atender"), se precarga su motivo.
+        if (idAgendaInicial) {
+          const cita = pendientes.find(
+            (agenda) =>
+              String(agenda.id_agenda) === String(idAgendaInicial)
+          );
+
+          if (cita) {
+            setMotivo((cita.motivo || "").slice(0, 40));
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("Error al cargar la agenda:", err);
+        setError(err.message);
+      })
+      .finally(() => {
+        setCargandoAgendas(false);
+      });
+  }, []);
+
+
   // Busca en la lista de pacientes el que coincide con el id
   // seleccionado en el formulario.
   const pacienteSeleccionado = pacientes.find(
@@ -126,6 +192,28 @@ function RegistroConsulta() {
   // historia clínica (caso anormal: caja no la generó). Solo se advierte.
   const sinHistoria =
     Boolean(idCliente) && !cargandoPacientes && !idHistoria;
+
+  // NUEVO: al elegir una cita agendada por caja se completan automáticamente
+  // el paciente y el motivo. Con la opción vacía se registra una consulta sin cita.
+  function seleccionarAgenda(valor) {
+    setIdAgenda(valor);
+    setError("");
+
+    if (!valor) {
+      return;
+    }
+
+    const cita = agendas.find(
+      (agenda) => String(agenda.id_agenda) === String(valor)
+    );
+
+    if (!cita) {
+      return;
+    }
+
+    setIdCliente(String(cita.id_cliente));
+    setMotivo((cita.motivo || "").slice(0, 40));
+  }
 
   // Maneja el envío del formulario de registro de consulta.
   function manejarGuardar(e) {
@@ -157,10 +245,15 @@ function RegistroConsulta() {
     // Objeto con los datos de la consulta que se enviará al backend.
     // Los campos opcionales usan un texto por defecto si quedan vacíos.
     // Los nombres coinciden con las columnas del diagrama.
-    // fecha_hora no se envía: la asigna el backend con la fecha y hora actual.
+    // NUEVO: fecha_hora (consulta.fecha_hora) ahora se envía desde el formulario;
+    // si no llegara, el backend usa la fecha y hora actual.
     const nuevaConsulta = {
       id_cliente: Number(idCliente),
       id_usuario: Number(idUsuario),
+
+      // NUEVO (diagrama): consulta.fecha_hora, la del momento exacto en que se guarda,
+      // en formato "YYYY-MM-DD HH:mm:ss"
+      fecha_hora: ahoraLocal().replace("T", " ") + ":00",
 
       // NUEVO (diagrama): consulta.id_historia, la historia que creó caja.
       id_historia: idHistoria ? Number(idHistoria) : null,
@@ -186,10 +279,6 @@ function RegistroConsulta() {
       evolucion:
         evolucion.trim() ||
         "Sin evolución registrada",
-
-      // NUEVO (diagrama): si se escribió, el backend lo inserta como una
-      // nueva fila en Antecedentes ligada a id_historia. Si no, va null.
-      antecedentes: antecedentes.trim() || null,
     };
 
     console.log("Datos enviados:", nuevaConsulta);
@@ -221,11 +310,12 @@ function RegistroConsulta() {
 
         setIdCliente("");
         setMotivo("");
+        setFechaHora(ahoraLocal());
         setResultadoExamen("");
         setDiagnostico("");
         setRecomendaciones("");
         setEvolucion("");
-        setAntecedentes("");
+        setIdAgenda("");
 
         // NUEVO (diagrama): formula_optica.id_consulta es FK de consulta
         // (fk_for_con), por eso se toma el id de la consulta recién creada
@@ -235,7 +325,7 @@ function RegistroConsulta() {
         // Tras un breve retraso, se redirige a la pantalla de generar fórmula
         // (ahora enviando el id_consulta en el state de la navegación).
         setTimeout(() => {
-          navigate("/optometra/generar-formula", {
+          navigate("/optometra/antecedentes", {
             state: { id_consulta: idConsulta },
           });
         }, 1500);
@@ -267,12 +357,7 @@ function RegistroConsulta() {
             </div>
           )}
 
-          {/* Alerta de éxito */}
-          {exito && (
-            <div className="alert alert-success py-2 small">
-              {exito}
-            </div>
-          )}
+        
 
           <form onSubmit={manejarGuardar}>
 
@@ -282,6 +367,45 @@ function RegistroConsulta() {
             </div>
 
             <div className="row g-3">
+
+
+              {/* NUEVO: Select de cita agendada. Muestra las consultas pendientes
+                  que agregó el módulo de caja; al elegir una se completan el
+                  paciente y el motivo, y la consulta queda asociada a esa cita */}
+              <div className="col-12">
+                <label className="form-label">
+                  Cita agendada
+                </label>
+
+                <select
+                  className="form-select"
+                  value={idAgenda || ""}
+                  onChange={(e) =>
+                    seleccionarAgenda(e.target.value)
+                  }
+                  disabled={cargandoAgendas}
+                >
+                  <option value="">
+                    {cargandoAgendas
+                      ? "Cargando agenda..."
+                      : "Sin cita (consulta sin agendar)"}
+                  </option>
+
+                  {agendas.map((agenda) => (
+                    <option
+                      key={agenda.id_agenda}
+                      value={agenda.id_agenda}
+                    >
+                      {agenda.fecha_hora
+                        ? new Date(agenda.fecha_hora).toLocaleString()
+                        : "Sin fecha"}{" "}
+                      — {agenda.cliente} — {agenda.motivo}
+                    </option>
+                  ))}
+                </select>
+
+               
+              </div>
 
 
               {/* Select de paciente, con mensaje según tenga o no historia clínica */}
@@ -297,9 +421,8 @@ function RegistroConsulta() {
                   onChange={(e) => {
                     setIdCliente(e.target.value);
 
-                    // NUEVO: al cambiar de paciente se limpian los antecedentes
-                    // escritos para no mezclarlos con otro paciente.
-                    setAntecedentes("");
+                    // NUEVO: si se cambia el paciente a mano, se desvincula la cita elegida.
+                    setIdAgenda("");
 
                     setError("");
                   }}
@@ -324,19 +447,7 @@ function RegistroConsulta() {
                 </select>
 
 
-                {/* Mensaje informativo: la historia clínica la genera caja al
-                    agendar la consulta; si no aparece, se muestra una advertencia */}
-                {idCliente && !cargandoPacientes && (
-                  <small
-                    className={
-                      sinHistoria ? "text-danger" : "text-muted"
-                    }
-                  >
-                    {idHistoria
-                      ? "Historia clínica generada al agendar la consulta."
-                      : "No se encontró la historia clínica de este paciente. Debe generarse al agendar la consulta desde caja."}
-                  </small>
-                )}
+               
               </div>
 
 
@@ -357,62 +468,55 @@ function RegistroConsulta() {
                   readOnly
                 />
 
-                <small className="text-muted">
-                  Se obtiene automáticamente del inicio de sesión.
-                </small>
               </div>
 
 
-              {/* NUEVO (diagrama): aviso cuando la consulta viene de una cita
-                  de la agenda (consulta.id_agenda) */}
-              {idAgenda && (
-                <div className="col-12">
-                  <small className="text-muted">
-                    Esta consulta queda asociada a la cita de agenda #{idAgenda}.
-                  </small>
-                </div>
-              )}
+              {/* NUEVO (diagrama): Historia clínica a la que pertenece la consulta
+                  (consulta.id_historia). Es de solo lectura y se obtiene del
+                  paciente seleccionado */}
+              <div className="col-md-6">
+                <label className="form-label">
+                  Historia clínica
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  value={
+                    idHistoria
+                      ? `Historia clínica #${idHistoria}`
+                      : idCliente
+                        ? "Sin historia clínica"
+                        : "Seleccione un paciente"
+                  }
+                  readOnly
+                />
+
+               
+              </div>
+
+
+              {/* NUEVO (diagrama): Fecha y hora de la consulta (consulta.fecha_hora).
+                  Es la de generación de la consulta, se llena sola y es de solo lectura */}
+              <div className="col-md-6">
+                <label className="form-label">
+                  Fecha y hora de la consulta
+                </label>
+
+                <input
+                  type="datetime-local"
+                  className="form-control"
+                  value={fechaHora}
+                  readOnly
+                />
+
+                
+              </div>
+
+
+             
 
             </div>
-
-
-            {/* NUEVO (diagrama): sección de antecedentes (tabla Antecedentes).
-                Los antecedentes cuelgan de historia_clinica y pueden ser
-                varios por historia, por eso se muestra siempre como un
-                campo opcional para agregar uno nuevo. */}
-            {idCliente && (
-              <>
-                <div className="seccion-form mt-4">
-                  <h6>Antecedentes del paciente</h6>
-                </div>
-
-                <div className="row g-3">
-
-                  {/* Antecedentes: texto libre opcional, limitado a 1000 caracteres */}
-                  <div className="col-12">
-                    <label className="form-label">
-                      Nuevo antecedente
-                    </label>
-
-                    <textarea
-                      className="form-control"
-                      rows="3"
-                      maxLength={1000}
-                      placeholder="Ej: Diabetes, uso previo de lentes, antecedentes familiares..."
-                      value={antecedentes}
-                      onChange={(e) =>
-                        setAntecedentes(e.target.value)
-                      }
-                    />
-
-                    <small className="text-muted">
-                      Opcional. {antecedentes.length}/1000
-                    </small>
-                  </div>
-
-                </div>
-              </>
-            )}
 
 
             {/* Sección: datos propios de la consulta */}
@@ -444,9 +548,7 @@ function RegistroConsulta() {
                   required
                 />
 
-                <small className="text-muted">
-                  {motivo.length}/40
-                </small>
+                
               </div>
 
 
@@ -508,9 +610,7 @@ function RegistroConsulta() {
                   }
                 />
 
-                <small className="text-muted">
-                  {resultadoExamen.length}/1000
-                </small>
+               
               </div>
 
 
@@ -531,9 +631,7 @@ function RegistroConsulta() {
                   }
                 />
 
-                <small className="text-muted">
-                  {recomendaciones.length}/1000
-                </small>
+                
               </div>
 
 
@@ -555,9 +653,7 @@ function RegistroConsulta() {
                   }
                 />
 
-                <small className="text-muted">
-                  {evolucion.length}/1000
-                </small>
+               
               </div>
 
             </div>

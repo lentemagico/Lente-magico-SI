@@ -203,19 +203,16 @@ function Nav() {
                 Optómetra
               </a>
               <ul className="dropdown-menu">
+
+                  <li>
+                  <Link className="dropdown-item" to="/optometra/historia-clinica">
+                    Historia Clínica
+                  </Link>
+                </li>
+                 
                 <li>
                   <Link className="dropdown-item" to="/optometra/agregar-consulta">
                     Agregar Consulta
-                  </Link>
-                </li>
-                <li>
-                  <Link className="dropdown-item" to="/optometra/generar-formula">
-                    Generar Fórmula
-                  </Link>
-                </li>
-                <li>
-                  <Link className="dropdown-item" to="/optometra/historia-clinica">
-                    Historia Clínica
                   </Link>
                 </li>
                 <li>
@@ -223,6 +220,13 @@ function Nav() {
                     Antecedentes
                   </Link>
                 </li>
+                <li>
+                  <Link className="dropdown-item" to="/optometra/generar-formula">
+                    Generar Fórmula
+                  </Link>
+                </li>
+              
+               
               </ul>
             </li>
           </ul>

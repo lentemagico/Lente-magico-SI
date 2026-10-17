@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1792014335678" clover="3.2.0">
-  <project timestamp="1792014335678" name="All files">
-    <metrics statements="166" coveredstatements="166" conditionals="98" coveredconditionals="98" methods="14" coveredmethods="14" elements="278" coveredelements="278" complexity="0" loc="166" ncloc="166" packages="2" files="5" classes="5"/>
+<coverage generated="1792204265820" clover="3.2.0">
+  <project timestamp="1792204265820" name="All files">
+    <metrics statements="222" coveredstatements="222" conditionals="133" coveredconditionals="133" methods="17" coveredmethods="17" elements="372" coveredelements="372" complexity="0" loc="222" ncloc="222" packages="3" files="7" classes="7"/>
     <package name="routes">
       <metrics statements="26" coveredstatements="26" conditionals="12" coveredconditionals="12" methods="2" coveredmethods="2"/>
       <file name="login.js" path="C:\Users\loren\OneDrive\Desktop\Lente-magico-SI\Trimestre-V\Proyecto_React_Lente_Magico\backend\routes\login.js">
@@ -187,6 +187,71 @@
         <line num="354" count="2" type="stmt"/>
         <line num="356" count="2" type="stmt"/>
         <line num="362" count="4" type="cond" truecount="2" falsecount="0"/>
+      </file>
+    </package>
+    <package name="routes.Optometra">
+      <metrics statements="56" coveredstatements="56" conditionals="35" coveredconditionals="35" methods="3" coveredmethods="3"/>
+      <file name="Consulta.js" path="C:\Users\loren\OneDrive\Desktop\Lente-magico-SI\Trimestre-V\Proyecto_React_Lente_Magico\backend\routes\Optometra\Consulta.js">
+        <metrics statements="34" coveredstatements="34" conditionals="23" coveredconditionals="23" methods="1" coveredmethods="1"/>
+        <line num="4" count="1" type="stmt"/>
+        <line num="8" count="1" type="stmt"/>
+        <line num="10" count="18" type="stmt"/>
+        <line num="12" count="18" type="stmt"/>
+        <line num="24" count="18" type="stmt"/>
+        <line num="27" count="18" type="cond" truecount="5" falsecount="0"/>
+        <line num="28" count="4" type="stmt"/>
+        <line num="34" count="14" type="stmt"/>
+        <line num="37" count="14" type="stmt"/>
+        <line num="44" count="13" type="cond" truecount="2" falsecount="0"/>
+        <line num="46" count="12" type="stmt"/>
+        <line num="49" count="1" type="stmt"/>
+        <line num="56" count="1" type="stmt"/>
+        <line num="62" count="13" type="cond" truecount="2" falsecount="0"/>
+        <line num="64" count="12" type="stmt"/>
+        <line num="70" count="12" type="cond" truecount="2" falsecount="0"/>
+        <line num="71" count="1" type="stmt"/>
+        <line num="72" count="1" type="stmt"/>
+        <line num="77" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="78" count="1" type="stmt"/>
+        <line num="79" count="1" type="stmt"/>
+        <line num="84" count="10" type="stmt"/>
+        <line num="87" count="1" type="stmt"/>
+        <line num="93" count="1" type="stmt"/>
+        <line num="97" count="11" type="stmt"/>
+        <line num="113" count="11" type="stmt"/>
+        <line num="125" count="10" type="cond" truecount="2" falsecount="0"/>
+        <line num="126" count="9" type="stmt"/>
+        <line num="133" count="10" type="stmt"/>
+        <line num="135" count="9" type="stmt"/>
+        <line num="143" count="3" type="stmt"/>
+        <line num="144" count="3" type="stmt"/>
+        <line num="146" count="3" type="stmt"/>
+        <line num="151" count="18" type="stmt"/>
+      </file>
+      <file name="historiaClinica.js" path="C:\Users\loren\OneDrive\Desktop\Lente-magico-SI\Trimestre-V\Proyecto_React_Lente_Magico\backend\routes\Optometra\historiaClinica.js">
+        <metrics statements="22" coveredstatements="22" conditionals="12" coveredconditionals="12" methods="2" coveredmethods="2"/>
+        <line num="4" count="1" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="8" count="4" type="stmt"/>
+        <line num="11" count="4" type="stmt"/>
+        <line num="30" count="3" type="stmt"/>
+        <line num="32" count="1" type="stmt"/>
+        <line num="34" count="1" type="stmt"/>
+        <line num="41" count="1" type="stmt"/>
+        <line num="42" count="13" type="stmt"/>
+        <line num="48" count="13" type="stmt"/>
+        <line num="51" count="13" type="cond" truecount="4" falsecount="0"/>
+        <line num="52" count="3" type="stmt"/>
+        <line num="58" count="10" type="stmt"/>
+        <line num="67" count="9" type="cond" truecount="2" falsecount="0"/>
+        <line num="68" count="1" type="stmt"/>
+        <line num="74" count="8" type="stmt"/>
+        <line num="83" count="8" type="cond" truecount="2" falsecount="0"/>
+        <line num="84" count="1" type="stmt"/>
+        <line num="91" count="7" type="stmt"/>
+        <line num="110" count="6" type="stmt"/>
+        <line num="116" count="2" type="stmt"/>
+        <line num="118" count="2" type="stmt"/>
       </file>
     </package>
   </project>

@@ -120,7 +120,7 @@ function RegistroAntecedentes() {
       setAntecedentes("");
 
       setTimeout(() => {
-        navigate("/optometra/historia-clinica");
+        navigate("/optometra/generar-formula");
       }, 1500);
     } catch (err) {
       console.error(
@@ -220,19 +220,7 @@ function RegistroAntecedentes() {
                   readOnly
                 />
 
-                {/* CAMBIO: si el paciente no tiene historia se advierte en rojo;
-                    la historia la genera caja al agendar la consulta */}
-                <small
-                  className={
-                    idCliente && !idHistoria
-                      ? "text-danger"
-                      : "text-muted"
-                  }
-                >
-                  {idCliente && !idHistoria
-                    ? "Sin historia clínica: debe generarse al agendar la consulta desde caja."
-                    : "Se obtiene automáticamente al seleccionar el paciente."}
-                </small>
+              
               </div>
             </div>
             {/* Sección: contenido del antecedente */}
@@ -264,9 +252,7 @@ function RegistroAntecedentes() {
                   required
                 />
 
-                <small className="text-muted">
-                  {antecedentes.length}/1000
-                </small>
+                
               </div>
 
             </div>

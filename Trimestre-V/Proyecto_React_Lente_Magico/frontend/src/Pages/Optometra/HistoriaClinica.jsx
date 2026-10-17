@@ -136,14 +136,8 @@ function RegistroHistoriaClinica() {
             Abre una historia clínica para un paciente existente.
           </p>
 
-          {/* Nota informativa: aclara que la historia se crea
-              automáticamente cuando caja agenda la consulta
-              (texto actualizado según el flujo real) */}
-          <div className="alert alert-info py-2 small">
-            La historia clínica se genera automáticamente cuando el
-            módulo de caja agenda la consulta del paciente. Usa este
-            formulario solo si algún paciente quedó sin historia.
-          </div>
+          
+         
 
           {/* Alerta de error */}
           {error && (
