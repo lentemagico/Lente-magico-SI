@@ -23,6 +23,7 @@ router.post("/", async (req, res) => {
         u.id,
         u.contrasenia,
         u.activar_usuario,
+        au.id_autorizacion,
         dp.correo,
         dp.primer_nombre,
         dp.segundo_nombre,
