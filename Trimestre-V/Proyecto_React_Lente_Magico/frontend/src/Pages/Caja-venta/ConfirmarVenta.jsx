@@ -176,9 +176,11 @@ export default function ConfirmarVenta() {
       );
 
       // Guarda los productos encontrados (o un arreglo vacío si no vino nada)
-      setResultados(
-        data.productos || []
-      );
+   setResultados(
+  Array.isArray(data)
+    ? data
+    : (data.productos || [])
+);
 
     } catch (err) {
 

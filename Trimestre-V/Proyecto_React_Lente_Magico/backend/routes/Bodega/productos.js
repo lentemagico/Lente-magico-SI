@@ -92,41 +92,65 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/productos — crea un producto nuevo
+// El código del producto se genera automáticamente (ya no se recibe en el body)
 router.post('/', async (req, res) => {
-    try {
-        const {
-            id_categoria, codigo_producto, nombre, descripcion,
-            precio_venta, estado, stock_actual, stock_minimo
-        } = req.body;
+    const {
+        id_categoria, nombre, descripcion,
+        precio_venta, estado, stock_actual, stock_minimo
+    } = req.body;
 
-        if (!codigo_producto || !nombre || precio_venta === undefined || precio_venta === null) {
-            return res.status(400).json({
-                mensaje: 'Los campos codigo_producto, nombre y precio_venta son obligatorios'
-            });
-        }
-          // Armamos el arreglo de valores; si un campo opcional no llegó, se usa un valor por defecto
+    if (!nombre || !String(nombre).trim() || precio_venta === undefined || precio_venta === null) {
+        return res.status(400).json({
+            mensaje: 'Los campos nombre y precio_venta son obligatorios'
+        });
+    }
+
+    // Conexión propia: leer el siguiente código y hacer el INSERT dentro de la misma
+    // transacción evita códigos repetidos si dos personas crean un producto a la vez
+    const conexion = await pool.getConnection();
+
+    try {
+        await conexion.beginTransaction();
+
+        // Código automático numérico de 7 dígitos: 1000001, 1000002, ...
+        // Solo cuentan los códigos puramente numéricos; los antiguos como
+        // "marc0001", "cod-0012" o "cy284603450" se ignoran
+        const [filas] = await conexion.query(
+            `SELECT COALESCE(MAX(CAST(codigo_producto AS UNSIGNED)), 1000000) + 1 AS siguiente
+             FROM Producto
+             WHERE codigo_producto REGEXP '^[0-9]+$'
+             FOR UPDATE`
+        );
+
+        const codigo_producto = String(filas[0].siguiente);
+
+        // Armamos el arreglo de valores; si un campo opcional no llegó, se usa un valor por defecto
         // (?? solo reemplaza cuando el valor es null o undefined, a diferencia de ||)
         const valores = [
             id_categoria ?? null,
             codigo_producto,
-            nombre,
-            descripcion ?? null,
+            String(nombre).trim(),
+            descripcion ?? '', // vacía si no llega, para no insertar NULL
             precio_venta,
             estado ?? 'Activo',
             stock_actual ?? 0,
             stock_minimo ?? 0,
         ];
 
-        const [result] = await pool.query(
+        const [result] = await conexion.query(
             `INSERT INTO Producto 
              (id_categoria, codigo_producto, nombre, descripcion, precio_venta, estado, stock_actual, stock_minimo) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             valores
         );
-         // Volvemos a consultar el producto recién creado para devolverlo completo (con su id real)
+
+        await conexion.commit();
+
+        // Volvemos a consultar el producto recién creado para devolverlo completo (con su id real)
         const [nuevo] = await pool.query('SELECT * FROM Producto WHERE id_producto = ?', [result.insertId]);
         res.status(201).json(nuevo[0]);
     } catch (error) {
+        try { await conexion.rollback(); } catch (_) { /* ignorar */ }
         console.error('Error al crear producto:', error);
 
         if (error.code === 'ER_DUP_ENTRY') {
@@ -138,6 +162,8 @@ router.post('/', async (req, res) => {
         }
 
         res.status(500).json({ mensaje: 'Error al crear producto', error: error.message });
+    } finally {
+        conexion.release();
     }
 });
 

@@ -21,6 +21,9 @@ function ConsultarProducto() {
     const [busqueda, setBusqueda] = useState('');
     const [mostrarInventario, setMostrarInventario] = useState(false);
 
+    // Producto que se está creando (null = modal de nuevo producto cerrado)
+    const [productoNuevo, setProductoNuevo] = useState(null);
+
     // Trae la lista de productos desde la API y normaliza el id
     const cargarProductos = async () => {
 
@@ -238,6 +241,126 @@ function ConsultarProducto() {
         }));
     };
 
+    // Abre el modal de nuevo producto con el formulario vacío
+    const abrirNuevo = () => {
+
+        setProductoNuevo({
+            nombre: '',
+            id_categoria: '',
+            stock_actual: '',
+            stock_minimo: '',
+            precio_venta: ''
+        });
+
+    };
+
+    // Cierra el modal de nuevo producto sin guardar
+    const cerrarNuevo = () => {
+
+        setProductoNuevo(null);
+
+    };
+
+    // Maneja los cambios de los inputs del modal de nuevo producto.
+    // Para "nombre" filtra caracteres que no sean letras/espacios (igual que al editar).
+    const handleChangeNuevo = (e) => {
+
+        const { name, value } = e.target;
+
+        const valorFinal =
+            name === 'nombre'
+                ? value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, "")
+                : value;
+
+        setProductoNuevo(prev => ({
+            ...prev,
+            [name]: valorFinal
+        }));
+    };
+
+    // Envía el producto nuevo al backend (POST) y refresca la lista
+    const crearProducto = async () => {
+
+        if (!productoNuevo) {
+            return;
+        }
+
+        // El backend exige nombre y precio_venta, y genera el código del producto solo
+        if (
+            !productoNuevo.nombre.trim() ||
+            productoNuevo.precio_venta === ''
+        ) {
+
+            alert('El nombre y el precio de venta son obligatorios.');
+
+            return;
+        }
+
+        const productoCreado = {
+
+            nombre: productoNuevo.nombre.trim(),
+
+            id_categoria: productoNuevo.id_categoria
+                ? Number(productoNuevo.id_categoria)
+                : null,
+
+            precio_venta:
+                Number(productoNuevo.precio_venta) || 0,
+
+            stock_actual:
+                Number(productoNuevo.stock_actual) || 0,
+
+            stock_minimo:
+                Number(productoNuevo.stock_minimo) || 0
+
+        };
+
+        try {
+
+            const respuesta = await fetch(
+                API_URL,
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+
+                    body: JSON.stringify(
+                        productoCreado
+                    )
+                }
+            );
+
+            const datos = await respuesta.json();
+
+            if (!respuesta.ok) {
+
+                throw new Error(
+                    datos.mensaje ||
+                    datos.message ||
+                    'No se pudo crear el producto'
+                );
+            }
+
+            await cargarProductos();
+
+            cerrarNuevo();
+
+        } catch (error) {
+
+            console.error(
+                'Error al crear producto:',
+                error
+            );
+
+            alert(
+                error.message ||
+                'No se pudo crear el producto'
+            );
+        }
+    };
+
     // Abre el modal de confirmación de eliminación para el producto seleccionado
     const abrirEliminar = (producto) => {
 
@@ -372,6 +495,13 @@ function ConsultarProducto() {
 
                         <button
                             className="btn-primary"
+                            onClick={abrirNuevo}
+                        >
+                            ➕ Nuevo producto
+                        </button>
+
+                        <button
+                            className="btn-primary"
                             onClick={() =>
                                 setMostrarInventario(true)
                             }
@@ -495,6 +625,214 @@ function ConsultarProducto() {
                     </tbody>
 
                 </table>
+
+                {/* ===== Modal: nuevo producto ===== */}
+                {productoNuevo && (
+
+                    <div className="modal-overlay">
+
+                        <div
+                            className="modal-editar"
+                            style={{
+                                maxWidth: '400px',
+                                width: '90%'
+                            }}
+                        >
+
+                            <h5 className="modal-titulo">
+                                Nuevo Producto
+                            </h5>
+
+                            <div
+                                className="form-container"
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '12px'
+                                }}
+                            >
+
+                                <div className="form-group">
+
+                                    <label
+                                        style={{
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        Nombre del Producto
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        name="nombre"
+                                        className="form-control"
+                                        value={
+                                            productoNuevo.nombre
+                                        }
+                                        onChange={handleChangeNuevo}
+                                    />
+
+                                </div>
+
+                                <div className="form-group">
+
+                                    <label
+                                        style={{
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        Categoría
+                                    </label>
+
+                                    <select
+                                        name="id_categoria"
+                                        className="form-select"
+                                        value={
+                                            productoNuevo.id_categoria
+                                        }
+                                        onChange={handleChangeNuevo}
+                                    >
+
+                                        <option value="">
+                                            Seleccione una categoría
+                                        </option>
+
+                                        {categorias.map(categoria => (
+
+                                            <option
+                                                key={categoria.id_categoria}
+                                                value={categoria.id_categoria}
+                                            >
+                                                {categoria.nombre_categoria}
+                                            </option>
+
+                                        ))}
+
+                                    </select>
+
+                                </div>
+
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        gap: '10px'
+                                    }}
+                                >
+
+                                    <div
+                                        className="form-group"
+                                        style={{
+                                            flex: 1
+                                        }}
+                                    >
+
+                                        <label
+                                            style={{
+                                                fontWeight: 'bold'
+                                            }}
+                                        >
+                                            Stock Actual
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            name="stock_actual"
+                                            className="form-control"
+                                            value={
+                                                productoNuevo.stock_actual
+                                            }
+                                            onChange={handleChangeNuevo}
+                                        />
+
+                                    </div>
+
+                                    <div
+                                        className="form-group"
+                                        style={{
+                                            flex: 1
+                                        }}
+                                    >
+
+                                        <label
+                                            style={{
+                                                fontWeight: 'bold'
+                                            }}
+                                        >
+                                            Stock Mínimo
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            name="stock_minimo"
+                                            className="form-control"
+                                            value={
+                                                productoNuevo.stock_minimo
+                                            }
+                                            onChange={handleChangeNuevo}
+                                        />
+
+                                    </div>
+
+                                </div>
+
+                                <div className="form-group">
+
+                                    <label
+                                        style={{
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        Precio de Venta
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        name="precio_venta"
+                                        className="form-control"
+                                        value={
+                                            productoNuevo.precio_venta
+                                        }
+                                        onChange={handleChangeNuevo}
+                                    />
+
+                                </div>
+
+                            </div>
+
+                            <div
+                                className="modal-btns"
+                                style={{
+                                    marginTop: '20px',
+                                    display: 'flex',
+                                    justifyContent: 'flex-end',
+                                    gap: '10px'
+                                }}
+                            >
+
+                                <button
+                                    className="btn-cancelar"
+                                    onClick={cerrarNuevo}
+                                >
+                                    Cancelar
+                                </button>
+
+
+                                <button
+                                    className="btn-primary"
+                                    onClick={crearProducto}
+                                >
+                                    Crear Producto
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                )}
 
                 {/* ===== Modal: editar producto ===== */}
                 {productoEditando && (
