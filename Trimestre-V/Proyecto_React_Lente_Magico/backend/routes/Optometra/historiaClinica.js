@@ -88,24 +88,17 @@ router.post("/historia-clinica", async (req, res) => {
 
     // Se inserta la nueva historia clinica
     // ?? solo reemplaza cuando el valor es null o undefined, a diferencia de ||
-    const [resultado] = await pool.query(
-      `
-      INSERT INTO Historia_clinica
-      (
-        id_cliente,
-        fecha_apertura,
-        evolucion,
-        num_consulta
-      )
-      VALUES (?, ?, ?, ?)
-      `,
-      [
-        id_cliente,
-        fecha_apertura,
-        evolucion || "Sin evolución inicial",
-        num_consulta ?? 0
-      ]
-    );
+const [resultado] = await pool.query(
+  `
+  INSERT INTO Historia_clinica
+  (
+    id_cliente,
+    fecha_apertura
+  )
+  VALUES (?, ?)
+  `,
+  [id_cliente, fecha_apertura]
+);
 
     res.status(201).json({
       mensaje: "Historia clínica registrada correctamente.",
