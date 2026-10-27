@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1792534634823" clover="3.2.0">
-  <project timestamp="1792534634823" name="All files">
+<coverage generated="1792614683141" clover="3.2.0">
+  <project timestamp="1792614683141" name="All files">
     <metrics statements="71" coveredstatements="71" conditionals="48" coveredconditionals="48" methods="5" coveredmethods="5" elements="124" coveredelements="124" complexity="0" loc="71" ncloc="71" packages="1" files="1" classes="1"/>
     <file name="productos.js" path="C:\Users\velas\OneDrive\Documentos\Lente-magico-SI\Trimestre-V\Proyecto_React_Lente_Magico\backend\routes\Bodega\productos.js">
       <metrics statements="71" coveredstatements="71" conditionals="48" coveredconditionals="48" methods="5" coveredmethods="5"/>
