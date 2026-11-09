@@ -3,10 +3,13 @@ import { Link } from "react-router-dom";
 import "../../Styles/GenerarFormula.css";
 
 function RegistroFormulaOptica() {
+  // Lista de consultas disponibles (cargadas desde el backend) y de pacientes,
+  // usados para poblar el <select> de consultas y mostrar el nombre del paciente.
   const [consultas, setConsultas] = useState([]);
   const [pacientes, setPacientes] = useState([]);
   const [idConsulta, setIdConsulta] = useState("");
 
+  // Valores de graduación óptica para cada ojo (OD = ojo derecho, OI = ojo izquierdo).
   const [esferaOD, setEsferaOD] = useState("");
   const [esferaOI, setEsferaOI] = useState("");
   const [cilindroOD, setCilindroOD] = useState("");
@@ -15,17 +18,23 @@ function RegistroFormulaOptica() {
   const [ejeOI, setEjeOI] = useState("");
   const [adicion, setAdicion] = useState("");
 
+  // Datos adicionales del lente recetado.
   const [tipoLente, setTipoLente] = useState("");
   const [uso, setUso] = useState("");
   const [observaciones, setObservaciones] = useState("");
 
+  // Estados de control de la interfaz: carga de datos, guardado en curso
+  // y si ya se generó una fórmula (para habilitar el botón de imprimir).
   const [cargandoConsultas, setCargandoConsultas] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [formulaGenerada, setFormulaGenerada] = useState(false);
 
+  // Mensajes de error y éxito mostrados en la interfaz.
   const [error, setError] = useState("");
   const [exito, setExito] = useState("");
 
+  // Al montar el componente, se cargan todas las consultas registradas
+  // para que el optómetra pueda seleccionar sobre cuál generar la fórmula.
   useEffect(() => {
     fetch("http://localhost:5000/api/optometra/consultas")
       .then(async (res) => {
@@ -51,7 +60,9 @@ function RegistroFormulaOptica() {
       });
   }, []);
 
-   useEffect(() => {
+  // Se cargan también todos los pacientes, para poder cruzar cada
+  // consulta con el nombre del paciente correspondiente.
+  useEffect(() => {
     fetch("http://localhost:5000/api/optometra/cliente")
       .then((res) => res.json())
       .then((data) => {
@@ -62,6 +73,8 @@ function RegistroFormulaOptica() {
       });
   }, []);
 
+  // Busca en la lista de consultas la que coincide con el id seleccionado
+  // en el <select>, para obtener sus datos (por ejemplo el id del cliente).
   const consultaSeleccionada = consultas.find(
     (consulta) =>
       Number(consulta.id_consulta) === Number(idConsulta)
@@ -69,16 +82,22 @@ function RegistroFormulaOptica() {
 
   const idCliente = consultaSeleccionada?.id_cliente || "";
 
-  
+
+  // A partir del id del cliente obtenido de la consulta, se busca el
+  // paciente correspondiente para poder mostrar su nombre en pantalla.
   const pacienteSeleccionado = pacientes.find(
     (paciente) => Number(paciente.id_cliente) === Number(idCliente)
   );
 
   const nombrePaciente = pacienteSeleccionado?.nombre || "";
 
+  // Maneja el envío del formulario: valida los campos obligatorios,
+  // arma el objeto de la fórmula y lo envía al backend por POST.
   const manejarGenerar = async (e) => {
     e.preventDefault();
 
+    // Validación básica: se requiere consulta, cliente asociado,
+    // tipo de lente y uso antes de poder generar la fórmula.
     if (!idConsulta || !idCliente || !tipoLente || !uso) {
       setError(
         "Selecciona una consulta y completa el tipo de lente y el uso."
@@ -86,26 +105,27 @@ function RegistroFormulaOptica() {
       return;
     }
 
+    // Se limpian mensajes previos y se activan los estados de carga.
     setError("");
     setExito("");
     setGuardando(true);
     setFormulaGenerada(false);
 
+    // Objeto con los datos de la fórmula que se enviará al backend.
+    // Los campos de graduación combinan OD y OI en un solo texto,
+    // usando "0.00" u otros valores por defecto si quedan vacíos.
     const nuevaFormula = {
       id_consulta: Number(idConsulta),
       id_cliente: Number(idCliente),
 
-      esfera_ojo_derecho_e_izquierdo: `OD: ${
-        esferaOD || "0.00"
-      } | OI: ${esferaOI || "0.00"}`,
+      esfera_ojo_derecho_e_izquierdo: `OD: ${esferaOD || "0.00"
+        } | OI: ${esferaOI || "0.00"}`,
 
-      cilindro_ojo_derecho_e_izquierdo: `OD: ${
-        cilindroOD || "0.00"
-      } | OI: ${cilindroOI || "0.00"}`,
+      cilindro_ojo_derecho_e_izquierdo: `OD: ${cilindroOD || "0.00"
+        } | OI: ${cilindroOI || "0.00"}`,
 
-      eje_ojo_derecho_e_izquierdo: `OD: ${
-        ejeOD || "0°"
-      } | OI: ${ejeOI || "0°"}`,
+      eje_ojo_derecho_e_izquierdo: `OD: ${ejeOD || "0°"
+        } | OI: ${ejeOI || "0°"}`,
 
       adicion: adicion.trim() || "Sin adición",
 
@@ -117,6 +137,7 @@ function RegistroFormulaOptica() {
         observaciones.trim() || "Sin observaciones",
     };
 
+    // Envío del formulario al backend mediante fetch con async/await.
     try {
       const res = await fetch(
         "http://localhost:5000/api/optometra/formulas",
@@ -137,19 +158,24 @@ function RegistroFormulaOptica() {
         );
       }
 
+      // Si todo sale bien, se muestra el mensaje de éxito y se habilita
+      // el botón de imprimir (formulaGenerada = true).
       setExito("¡Fórmula óptica generada con éxito!");
       setFormulaGenerada(true);
 
     } catch (err) {
+      // Si algo falla, se captura el error y se muestra al usuario.
       console.error("Error al guardar fórmula:", err);
       setError(err.message);
 
     } finally {
+      // Pase lo que pase, se desactiva el indicador de "guardando".
       setGuardando(false);
     }
   };
 
 
+  // Dispara el diálogo de impresión del navegador para imprimir la fórmula.
   const imprimirFormula = () => {
     window.print();
   };
@@ -160,6 +186,7 @@ function RegistroFormulaOptica() {
       <div className="card shadow-sm">
         <div className="card-body p-4">
 
+          {/* Título y descripción de la pantalla */}
           <h4>Generar fórmula óptica</h4>
 
           <p className="text-muted">
@@ -167,12 +194,14 @@ function RegistroFormulaOptica() {
             de una consulta.
           </p>
 
+          {/* Alerta de error, solo se muestra si hay un mensaje de error */}
           {error && (
             <div className="alert alert-danger py-2 small">
               {error}
             </div>
           )}
 
+          {/* Alerta de éxito, solo se muestra si hay un mensaje de éxito */}
           {exito && (
             <div className="alert alert-success py-2 small">
               {exito}
@@ -181,8 +210,9 @@ function RegistroFormulaOptica() {
 
           <form onSubmit={manejarGenerar}>
 
-            
 
+
+            {/* Sección: selección de la consulta sobre la que se genera la fórmula */}
             <div className="seccion-form mt-3">
               <h6>Consulta seleccionada</h6>
             </div>
@@ -196,6 +226,8 @@ function RegistroFormulaOptica() {
                   <span className="text-danger">*</span>
                 </label>
 
+                {/* Select con todas las consultas cargadas; al cambiar,
+                    se reinicia el estado de "formulaGenerada" */}
                 <select
                   className="form-select"
                   value={idConsulta}
@@ -213,6 +245,8 @@ function RegistroFormulaOptica() {
                   </option>
 
                   {consultas.map((consulta) => {
+                    // Por cada consulta se busca el paciente asociado
+                    // para mostrar su nombre junto al motivo de consulta.
                     const paciente = pacientes.find(
                       (p) =>
                         Number(p.id_cliente) ===
@@ -242,6 +276,8 @@ function RegistroFormulaOptica() {
                   Paciente
                 </label>
 
+                {/* Campo de solo lectura: muestra el nombre del paciente
+                    derivado automáticamente de la consulta seleccionada */}
                 <input
                   type="text"
                   className="form-control"
@@ -261,14 +297,16 @@ function RegistroFormulaOptica() {
 
             </div>
 
-            
 
+
+            {/* Sección: datos de graduación (esfera, cilindro, eje, adición) */}
             <div className="seccion-form mt-4">
               <h6>Datos de la fórmula (graduación)</h6>
             </div>
 
             <div className="row g-3">
 
+              {/* Esfera ojo derecho */}
               <div className="col-md-6">
                 <label className="form-label">
                   Esfera — Ojo derecho (OD)
@@ -285,6 +323,7 @@ function RegistroFormulaOptica() {
                 />
               </div>
 
+              {/* Esfera ojo izquierdo */}
               <div className="col-md-6">
                 <label className="form-label">
                   Esfera — Ojo izquierdo (OI)
@@ -301,6 +340,7 @@ function RegistroFormulaOptica() {
                 />
               </div>
 
+              {/* Cilindro ojo derecho */}
               <div className="col-md-6">
                 <label className="form-label">
                   Cilindro — Ojo derecho (OD)
@@ -317,6 +357,7 @@ function RegistroFormulaOptica() {
                 />
               </div>
 
+              {/* Cilindro ojo izquierdo */}
               <div className="col-md-6">
                 <label className="form-label">
                   Cilindro — Ojo izquierdo (OI)
@@ -333,6 +374,7 @@ function RegistroFormulaOptica() {
                 />
               </div>
 
+              {/* Eje ojo derecho */}
               <div className="col-md-4">
                 <label className="form-label">
                   Eje — Ojo derecho (OD)
@@ -349,6 +391,7 @@ function RegistroFormulaOptica() {
                 />
               </div>
 
+              {/* Eje ojo izquierdo */}
               <div className="col-md-4">
                 <label className="form-label">
                   Eje — Ojo izquierdo (OI)
@@ -365,6 +408,7 @@ function RegistroFormulaOptica() {
                 />
               </div>
 
+              {/* Adición (para lentes bifocales/progresivos) */}
               <div className="col-md-4">
                 <label className="form-label">
                   Adición
@@ -383,8 +427,9 @@ function RegistroFormulaOptica() {
 
             </div>
 
-           
 
+
+            {/* Sección: datos del lente (tipo, uso y observaciones) */}
             <div className="seccion-form mt-4">
               <h6>Datos del lente</h6>
             </div>
@@ -398,6 +443,7 @@ function RegistroFormulaOptica() {
                   <span className="text-danger">*</span>
                 </label>
 
+                {/* Select con las opciones fijas de tipo de lente */}
                 <select
                   className="form-select"
                   value={tipoLente}
@@ -437,6 +483,7 @@ function RegistroFormulaOptica() {
                   <span className="text-danger">*</span>
                 </label>
 
+                {/* Select con las opciones fijas de uso del lente */}
                 <select
                   className="form-select"
                   value={uso}
@@ -475,6 +522,7 @@ function RegistroFormulaOptica() {
                   Observaciones
                 </label>
 
+                {/* Campo libre para observaciones adicionales de la fórmula */}
                 <textarea
                   className="form-control"
                   rows="3"
@@ -489,8 +537,9 @@ function RegistroFormulaOptica() {
 
             </div>
 
-            
 
+
+            {/* Botones de acción: generar, imprimir (solo si ya se generó) y cancelar */}
             <div className="d-flex justify-content-center gap-2 mt-4">
 
               <button
@@ -527,8 +576,9 @@ function RegistroFormulaOptica() {
         </div>
       </div>
 
-      
 
+
+      {/* Vista previa en vivo de la fórmula, con los datos capturados hasta el momento */}
       <div className="card vista-formula mt-4 p-4 border-start border-3 border-info shadow-sm">
 
         <h5 className="text-info fw-bold mb-3">
@@ -537,6 +587,7 @@ function RegistroFormulaOptica() {
 
         <div className="row g-2">
 
+          {/* Datos generales: consulta y paciente */}
           <div className="col-md-6">
             <strong>Consulta:</strong>{" "}
             {idConsulta || "---"}
@@ -547,6 +598,7 @@ function RegistroFormulaOptica() {
             {nombrePaciente || idCliente || "---"}
           </div>
 
+          {/* Tipo de lente y uso seleccionados */}
           <div className="col-md-6">
             <strong>Tipo de lente:</strong>{" "}
             <span className="text-primary fw-medium">
@@ -570,6 +622,7 @@ function RegistroFormulaOptica() {
             <hr />
           </div>
 
+          {/* Valores de graduación por ojo */}
           <div className="col-md-6">
             <strong>Esfera OD:</strong>{" "}
             {esferaOD || "---"}
@@ -600,6 +653,7 @@ function RegistroFormulaOptica() {
             {ejeOI || "---"}
           </div>
 
+          {/* Las observaciones solo se muestran si el usuario escribió algo */}
           {observaciones && (
             <div className="col-12 mt-2">
               <hr />

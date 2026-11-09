@@ -1,27 +1,38 @@
 import { useState, useEffect } from "react";
 
+// Endpoint del backend para el recurso "autorizaciones" (roles del sistema)
 const API_URL = "/api/administrador/autorizaciones";
 
 const Autorizaciones = () => {
+  // Lista de autorizaciones traídas del backend
   const [autorizaciones, setAutorizaciones] = useState([]);
+  // Bandera para mostrar el mensaje "Cargando..." mientras llega la respuesta del fetch
   const [cargando, setCargando] = useState(true);
+  // Mensaje de error para mostrar en pantalla si algo falla
   const [error, setError] = useState("");
 
+  // Texto escrito en el input de búsqueda, usado para filtrar la tabla
   const [busqueda, setBusqueda] = useState("");
 
+  // Controla si el formulario (crear/editar) está visible
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  // Guarda la autorización que se está editando (null cuando se está creando una nueva)
   const [autorizacionEditando, setAutorizacionEditando] = useState(null);
+  // Valor del campo "nombre" dentro del formulario
   const [nombreForm, setNombreForm] = useState("");
 
+  // Al montar el componente, se cargan las autorizaciones una sola vez
   useEffect(() => {
     cargarAutorizaciones();
   }, []);
 
+  // Trae la lista de autorizaciones desde el backend (GET)
   function cargarAutorizaciones() {
     setCargando(true);
     fetch(API_URL)
       .then((respuesta) => respuesta.json())
       .then((data) => {
+        // Soporta que el backend responda un array plano o un objeto { autorizaciones: [...] }
         const lista = Array.isArray(data)
           ? data
           : Array.isArray(data?.autorizaciones)
@@ -32,6 +43,7 @@ const Autorizaciones = () => {
         setError("");
       })
       .catch((err) => {
+        // Si falla la petición (ej. backend apagado), se muestra un mensaje amigable
         setError(
           "No se pudieron cargar las autorizaciones. Verifica que el backend esté corriendo en http://localhost:5000",
         );
@@ -40,27 +52,32 @@ const Autorizaciones = () => {
       .finally(() => setCargando(false));
   }
 
+  // Prepara el formulario vacío para crear una autorización nueva
   function abrirFormularioNuevo() {
     setAutorizacionEditando(null);
     setNombreForm("");
     setMostrarFormulario(true);
   }
 
+  // Prepara el formulario precargado con los datos de la autorización que se va a editar
   function abrirFormularioEditar(autorizacion) {
     setAutorizacionEditando(autorizacion);
     setNombreForm(autorizacion.nombre);
     setMostrarFormulario(true);
   }
 
+  // Envía el formulario: crea (POST) o actualiza (PUT) una autorización según el caso
   function guardarAutorizacion(e) {
     e.preventDefault();
 
+    // Validación simple: el nombre no puede estar vacío
     if (nombreForm.trim() === "") {
       alert("El nombre de la autorización es obligatorio");
       return;
     }
 
     if (autorizacionEditando) {
+      // Modo edición: se actualiza la autorización existente por su id
       fetch(`${API_URL}/${autorizacionEditando.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -75,6 +92,7 @@ const Autorizaciones = () => {
           console.error(err);
         });
     } else {
+      // Modo creación: se envía una autorización nueva
       fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,6 +109,7 @@ const Autorizaciones = () => {
     }
   }
 
+  // Elimina una autorización previa confirmación del usuario
   function eliminarAutorizacion(id) {
     const confirmar = window.confirm(
       "¿Seguro que quieres eliminar esta autorización?",
@@ -105,12 +124,14 @@ const Autorizaciones = () => {
       });
   }
 
+  // Lista filtrada según el texto escrito en el buscador (por nombre)
   const autorizacionesFiltradas = (autorizaciones || []).filter((a) =>
     (a?.nombre || "").toLowerCase().includes(busqueda.toLowerCase()),
   );
 
   return (
     <div className="container mt-4">
+      {/* Encabezado con título y botón para abrir el formulario de creación */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h3 className="mb-0">Autorizaciones</h3>
@@ -121,8 +142,10 @@ const Autorizaciones = () => {
         </button>
       </div>
 
+      {/* Alerta visible solo si hubo un error al cargar/guardar/eliminar */}
       {error && <div className="alert alert-danger">{error}</div>}
 
+      {/* Campo de búsqueda que filtra la tabla en tiempo real */}
       <div className="row mb-3 g-2">
         <div className="col-md-12">
           <input
@@ -135,6 +158,7 @@ const Autorizaciones = () => {
         </div>
       </div>
 
+      {/* Formulario de creación/edición, solo se renderiza si mostrarFormulario es true */}
       {mostrarFormulario && (
         <div className="card mb-3">
           <div className="card-body">
@@ -150,6 +174,7 @@ const Autorizaciones = () => {
                   type="text"
                   className="form-control"
                   value={nombreForm}
+                  // Solo permite letras (incluyendo tildes/ñ) y espacios mientras se escribe
                   onChange={(e) => setNombreForm(e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, ""))}
                   placeholder="Ej: Administrador"
                 />
@@ -172,6 +197,7 @@ const Autorizaciones = () => {
         </div>
       )}
 
+      {/* Mientras carga se muestra un texto; cuando termina se muestra la tabla */}
       {cargando ? (
         <p className="text-muted">Cargando autorizaciones...</p>
       ) : (
@@ -186,27 +212,31 @@ const Autorizaciones = () => {
                 </tr>
               </thead>
               <tbody>
+                {/* Una fila por cada autorización que pasó el filtro de búsqueda */}
                 {autorizacionesFiltradas.map((a) => (
                   <tr key={a.id}>
                     <td>{a.id}</td>
                     <td>{a.nombre}</td>
                     <td className="text-end">
+                      {/* Botón para abrir el formulario en modo edición */}
                       <button
                         className="btn btn-sm btn-outline-secondary me-2"
                         onClick={() => abrirFormularioEditar(a)}
                       >
-                       🖋️
+                        🖋️
                       </button>
+                      {/* Botón para eliminar la autorización (pide confirmación) */}
                       <button
                         className="btn btn-sm btn-outline-danger"
                         onClick={() => eliminarAutorizacion(a.id)}
                       >
-                       🗑️
+                        🗑️
                       </button>
                     </td>
                   </tr>
                 ))}
 
+                {/* Mensaje que aparece cuando el filtro no encuentra resultados */}
                 {autorizacionesFiltradas.length === 0 && (
                   <tr>
                     <td colSpan="3" className="text-center text-muted py-3">
@@ -218,6 +248,7 @@ const Autorizaciones = () => {
             </table>
           </div>
 
+          {/* Contador de resultados mostrados */}
           <p className="text-muted">
             {autorizacionesFiltradas.length} autorización(es) encontradas
           </p>

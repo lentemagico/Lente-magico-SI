@@ -1,24 +1,30 @@
 import React, { useState } from 'react';
 
+// Endpoint del backend para registrar un servicio (URL absoluta apuntando al backend local)
 const API_URL = 'http://localhost:5000/api/servicios';
 
 function RegistrarServicio() {
 
+  // Bandera para deshabilitar el botón mientras se envía el formulario
   const [loading, setLoading] = useState(false);
+  // Mensaje de error a mostrar
   const [error, setError] = useState(null);
+  // Mensaje de éxito a mostrar (se borra solo después de unos segundos)
   const [success, setSuccess] = useState(null);
 
+  // Valida, envía y procesa el registro de un nuevo servicio
   const crearServicio = async (e) => {
     e.preventDefault();
 
     const form = e.currentTarget;
 
-    // Validación del formulario
+    // Validación del formulario (usa la validación nativa del navegador)
     if (form.checkValidity() === false) {
       e.stopPropagation();
       return;
     }
 
+    // Lee los valores directamente del formulario por el "name" de cada campo
     const tipo = form.tipoServicio.value;
     const nombre = form.nombreServicio.value;
     const costo = form.costoServicio.value;
@@ -80,6 +86,7 @@ function RegistrarServicio() {
         `Asegúrate de que tu backend esté corriendo en el puerto 5000.`
       );
 
+      // Quitar el mensaje de error después de 5 segundos
       setTimeout(() => {
         setError(null);
       }, 5000);
@@ -127,6 +134,7 @@ function RegistrarServicio() {
                 className="form-select py-2 text-muted"
                 defaultValue=""
                 required
+                // Mensajes de validación nativos personalizados
                 onInvalid={(e) =>
                   e.target.setCustomValidity(
                     "Por favor, rellena este campo."

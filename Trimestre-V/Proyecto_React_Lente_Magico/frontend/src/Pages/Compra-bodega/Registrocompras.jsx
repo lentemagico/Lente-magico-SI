@@ -1,13 +1,16 @@
+// ================== IMPORTS ==================
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import "../../Styles/Stylec.css";
 // import Nav from "../../Components/Nav.jsx";
 
+// ================== CONSTANTES: URLs de la API ==================
 const COMPRAS_API_URL = "http://localhost:5000/api/compras";
 const PRODUCTOS_API_URL = "http://localhost:5000/api/productos";
 const PROVEEDORES_API_URL = "http://localhost:5000/api/proveedores";
 const CATEGORIAS_API_URL = "http://localhost:5000/api/categorias";
 
+// Estado inicial/limpio del formulario de compra (para "registrar" y para resetear)
 const formVacio = {
     idProveedor: '',
     fechaCompra: '',
@@ -16,9 +19,11 @@ const formVacio = {
     detalle: [{ nombreProducto: '', cantidad: '', costoUnitario: '' }],
 };
 
+// ================== COMPONENTE PRINCIPAL ==================
 function RegistroCompras() {
     const navigate = useNavigate();
 
+    // ---------- Estados del componente ----------
     const [busqueda, setBusqueda] = useState('');
     const [compras, setCompras] = useState([]);
     const [productos, setProductos] = useState([]);
@@ -34,6 +39,7 @@ function RegistroCompras() {
     const [editando, setEditando] = useState(false);
     const [compraEditando, setCompraEditando] = useState(null);
 
+    // Al montar el componente, carga compras, productos, proveedores y categorías
     useEffect(() => {
         cargarCompras();
         cargarProductos();
@@ -41,6 +47,7 @@ function RegistroCompras() {
         cargarCategorias();
     }, []);
 
+    // Trae la lista de compras desde la API
     const cargarCompras = async () => {
         try {
             const response = await fetch(COMPRAS_API_URL);
@@ -64,6 +71,7 @@ function RegistroCompras() {
         }
     };
 
+    // Trae la lista de productos desde la API
     const cargarProductos = async () => {
         try {
             const response = await fetch(PRODUCTOS_API_URL);
@@ -83,6 +91,7 @@ function RegistroCompras() {
         }
     };
 
+    // Trae la lista de proveedores desde la API (para el selector del formulario)
     const cargarProveedores = async () => {
         try {
             const response = await fetch(PROVEEDORES_API_URL);
@@ -106,6 +115,8 @@ function RegistroCompras() {
         }
     };
 
+    // Trae la lista de categorías desde la API (se usa para asignar categoría
+    // por defecto a productos nuevos creados desde una compra)
     const cargarCategorias = async () => {
         try {
             const response = await fetch(CATEGORIAS_API_URL);
@@ -129,6 +140,7 @@ function RegistroCompras() {
         }
     };
 
+    // Lista de compras filtrada según el texto de búsqueda (ID, proveedor, comprobante o estado)
     const comprasFiltradas = compras.filter((c) =>
         c.id?.toString().toLowerCase().includes(busqueda.toLowerCase()) ||
         c.idProveedor?.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -136,6 +148,7 @@ function RegistroCompras() {
         c.estado?.toLowerCase().includes(busqueda.toLowerCase())
     );
 
+    // Suma el total de una compra a partir de su detalle (cantidad x costo unitario)
     const calcularTotal = (detalle) =>
         detalle
             ? detalle.reduce(
@@ -146,9 +159,11 @@ function RegistroCompras() {
             )
             : 0;
 
+    // Da formato de moneda colombiana (COP) a un valor numérico
     const formatPeso = (valor) =>
         '$' + Number(valor).toLocaleString('es-CO');
 
+    // Totales para las tarjetas de estadísticas del encabezado
     const totalCompletadas = compras.filter(
         c => c.estado === 'Completada'
     ).length;
@@ -157,6 +172,8 @@ function RegistroCompras() {
         c => c.estado === 'Pendiente'
     ).length;
 
+    // Maneja los cambios de los campos generales del formulario de compra
+    // (proveedor, fecha, comprobante, estado)
     const handleChangeNuevo = (e) => {
         setFormNuevo({
             ...formNuevo,
@@ -164,21 +181,24 @@ function RegistroCompras() {
         });
     };
 
- const handleChangeDetalleNuevo = (index, e) => {
-    const nuevaLinea = [...formNuevo.detalle];
-    const { name, value } = e.target;
+    // Maneja los cambios de una línea del detalle de la compra
+    // (producto, cantidad, costo unitario). Filtra letras para el nombre del producto.
+    const handleChangeDetalleNuevo = (index, e) => {
+        const nuevaLinea = [...formNuevo.detalle];
+        const { name, value } = e.target;
 
-    nuevaLinea[index][name] =
-        name === 'nombreProducto'
-            ? value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, '')
-            : value;
+        nuevaLinea[index][name] =
+            name === 'nombreProducto'
+                ? value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, '')
+                : value;
 
-    setFormNuevo({
-        ...formNuevo,
-        detalle: nuevaLinea
-    });
-};
+        setFormNuevo({
+            ...formNuevo,
+            detalle: nuevaLinea
+        });
+    };
 
+    // Agrega una nueva línea vacía al detalle de la compra
     const handleAgregarLineaNuevo = () =>
         setFormNuevo({
             ...formNuevo,
@@ -192,6 +212,7 @@ function RegistroCompras() {
             ]
         });
 
+    // Elimina una línea del detalle de la compra por su índice
     const handleEliminarLineaNuevo = (index) =>
         setFormNuevo({
             ...formNuevo,
@@ -216,6 +237,8 @@ function RegistroCompras() {
             const id_categoria_default =
                 categoriaDefault?.id_categoria ?? null;
 
+            // Por cada línea del detalle: si el producto ya existe, suma stock;
+            // si no existe, lo crea con el stock inicial de la compra.
             for (const linea of detalle) {
 
                 const nombreBuscado =
@@ -542,6 +565,7 @@ function RegistroCompras() {
         setCompraEditando(null);
     };
 
+    // Devuelve los colores (fondo/texto/borde) según el estado de la compra
     const estadoColor = (estado) => {
 
         if (estado === 'Completada') {
@@ -567,6 +591,7 @@ function RegistroCompras() {
         };
     };
 
+    // ================== RENDER ==================
     return (
         <>
             {/* <Nav/> */}

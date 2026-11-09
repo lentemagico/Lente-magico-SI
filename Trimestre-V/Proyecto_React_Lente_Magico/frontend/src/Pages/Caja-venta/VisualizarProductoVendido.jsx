@@ -1,14 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
 
+// Endpoint del backend con los productos vendidos
 const API_URL = "http://localhost:5000/api/productos-vendidos";
 
 function VisualizarProductoVendido() {
 
+  // Lista de productos vendidos a mostrar
   const [productosVendidos, setProductosVendidos] = useState([]);
+  // Bandera para mostrar el spinner mientras carga
   const [loading, setLoading] = useState(false);
+  // Mensaje de error si falla la carga
   const [error, setError] = useState(null);
 
   // Cargar productos vendidos
+  // useCallback evita recrear la función en cada render, ya que se usa como dependencia del useEffect
   const cargarProductosVendidos = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -26,7 +31,7 @@ function VisualizarProductoVendido() {
         );
       }
 
-      // Adaptar la respuesta del backend
+      // Adaptar la respuesta del backend: soporta distintas formas de respuesta
       setProductosVendidos(
         data.productosVendidos ||
         data.productos ||
@@ -83,7 +88,7 @@ function VisualizarProductoVendido() {
             style={{ maxHeight: "300px" }}
           >
 
-            {/* Cargando */}
+            {/* Cargando: se muestra un spinner mientras llega la respuesta */}
             {loading ? (
 
               <div className="text-center py-4">
@@ -112,7 +117,7 @@ function VisualizarProductoVendido() {
 
             ) : (
 
-              /* Lista de productos */
+              /* Lista de productos: una tarjeta por cada producto vendido */
               productosVendidos.map((prod, index) => (
 
                 <div
@@ -120,14 +125,14 @@ function VisualizarProductoVendido() {
                   className="p-3 bg-dark text-warning rounded text-center mb-3 shadow-sm"
                 >
 
-                  {/* Nombre del producto */}
+                  {/* Nombre del producto (soporta distintos nombres de campo según el backend) */}
                   <div className="fw-bold fs-6 mb-1 text-white">
                     {prod.nombre ||
                       prod.nombre_producto ||
                       prod.descripcion}
                   </div>
 
-                                   {/* Detalles adicionales */}
+                  {/* Detalles adicionales: precio unitario y fecha/hora de venta */}
                   <div className="d-flex justify-content-between align-items-center mt-2 px-2 small text-muted">
 
                     <span className="badge bg-warning text-dark fw-bold">

@@ -3,11 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../config/api";
 
 export default function VisualizarVenta() {
+  // Lista de ventas a mostrar en el historial
   const [ventas, setVentas] = useState([]);
+  // Mensaje de error si falla la carga
   const [error, setError] = useState(null);
+  // Bandera para mostrar "Cargando..." mientras llega la respuesta
   const [cargando, setCargando] = useState(true);
   const navigate = useNavigate();
 
+  // Al montar el componente se cargan las últimas ventas
   useEffect(() => {
     const cargar = async () => {
       try {
@@ -24,6 +28,7 @@ export default function VisualizarVenta() {
     cargar();
   }, []);
 
+  // Suma el total de todas las ventas cargadas (no es necesariamente el total histórico, solo el de esta lista)
   const totalRecaudado = ventas.reduce(
     (acc, v) => acc + Number(v.total || 0),
     0
@@ -31,6 +36,7 @@ export default function VisualizarVenta() {
 
   return (
     <div className="container py-4">
+      {/* Encabezado con título y botón para ir a registrar una venta nueva */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h3 className="fw-bold text-primary mb-0">Historial de Ventas</h3>
@@ -41,8 +47,10 @@ export default function VisualizarVenta() {
         </button>
       </div>
 
+      {/* Alerta de error */}
       {error && <div className="alert alert-danger">{error}</div>}
 
+      {/* Mientras carga: texto; sin ventas: tarjeta de aviso; con ventas: tabla */}
       {cargando ? (
         <p className="text-muted">Cargando ventas...</p>
       ) : ventas.length === 0 ? (
@@ -65,6 +73,7 @@ export default function VisualizarVenta() {
               </tr>
             </thead>
             <tbody>
+              {/* Una fila por cada venta del historial */}
               {ventas.map((venta) => (
                 <tr key={venta.id_venta}>
                   <td>{venta.id_venta}</td>

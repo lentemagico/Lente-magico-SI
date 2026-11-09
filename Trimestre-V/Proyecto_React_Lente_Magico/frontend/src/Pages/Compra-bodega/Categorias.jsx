@@ -126,14 +126,14 @@ function Categorias() {
         cargarCategorias();
     }, []);
 
- const handleChangeForm = (e) => {
-    const { name, value } = e.target;
-    const camposSoloLetras = ['nombreCategoria', 'descripcion'];
-    const nuevoValor = camposSoloLetras.includes(name)
-        ? value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, '')
-        : value;
-    setFormData({ ...formData, [name]: nuevoValor });
-};
+    const handleChangeForm = (e) => {
+        const { name, value } = e.target;
+        const camposSoloLetras = ['nombreCategoria', 'descripcion'];
+        const nuevoValor = camposSoloLetras.includes(name)
+            ? value.replace(/[^A-Za-zÁÉÍÓÚáéíóúñÑ\s]/g, '')
+            : value;
+        setFormData({ ...formData, [name]: nuevoValor });
+    };
 
     const categoriasFiltradas = categorias.filter((c) =>
         c?.nombreCategoria?.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -226,7 +226,7 @@ function Categorias() {
 
     return (
         <>
-             {/* <Nav /> */}
+            {/* <Nav /> */}
 
             {/* Modal confirmación eliminar */}
             {mostrarConfirmar && (
