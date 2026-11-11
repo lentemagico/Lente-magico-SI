@@ -11,4 +11,8 @@
 
 - ### https://loroca-developer.github.io/Diagrama_Lente_Magic_V3/
 
+- ### Ultima Versión Diagrama Crow's Foot
+
+- ### https://loroca-developer.github.io/Diagrama_Crow-s_foot/
+
 
